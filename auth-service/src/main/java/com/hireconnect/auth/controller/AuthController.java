@@ -35,7 +35,8 @@ public class AuthController {
     @PostMapping("/logout")
     public String logout(@RequestHeader("Authorization") String header) {
         String token = header.substring(7);
-        return authService.logout(token);
+        return "Logged out successfully";
+
     }
 
     @PostMapping("/validate")

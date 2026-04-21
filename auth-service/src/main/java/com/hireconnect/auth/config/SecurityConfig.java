@@ -3,6 +3,8 @@ package com.hireconnect.auth.config;
 import com.hireconnect.auth.security.JwtFilter;
 import com.hireconnect.auth.security.OAuth2SuccessHandler;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -31,20 +33,26 @@ private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    	http
+        .csrf(csrf -> csrf.disable())
 
-        http
-            .csrf(csrf -> csrf.disable())
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/auth/**").permitAll()
+            .anyRequest().authenticated()
+        )
 
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**").permitAll()
-                .anyRequest().authenticated()
-            )
+        .exceptionHandling(ex -> ex
+            .authenticationEntryPoint((request, response, authException) -> {
+                response.setContentType("application/json");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("{\"message\": \"Please login first\"}");
+            })
+        )
 
-            // 🔥 OAuth2 login
-            .oauth2Login(oauth -> oauth
-                .successHandler(oAuth2SuccessHandler)
-            )
-        //jwt filter
+        .oauth2Login(oauth -> oauth
+            .successHandler(oAuth2SuccessHandler)
+        )
+
         .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 
         .sessionManagement(session ->

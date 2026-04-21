@@ -73,7 +73,7 @@ public class AuthServiceImpl implements AuthService {
 				.orElseThrow(() -> new RuntimeException("User not found"));
 
 		if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-			throw new RuntimeException("Invalid credentials");
+			throw new RuntimeException("Invalid email or passwords");
 		}
 
 		String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
