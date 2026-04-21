@@ -6,8 +6,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import com.hireconnect.job.dto.JobRequest;
+import com.hireconnect.job.dto.JobWithRecruiterDTO;
 import com.hireconnect.job.entity.Job;
 import com.hireconnect.job.service.JobService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/jobs")
@@ -20,27 +23,28 @@ public class JobController {
     }
 
     @PostMapping
-    public String createJob(@RequestBody JobRequest request) {
+    public String createJob(@RequestBody JobRequest request,
+                            HttpServletRequest httpRequest) {
 
-        String email = SecurityContextHolder.getContext()
-                .getAuthentication().getName();
+        String email = (String) httpRequest.getAttribute("email");
 
         return jobService.addJob(request, email);
     }
+
 
     @GetMapping("/public")
     public List<Job> getAllJobs() {
         return jobService.getAllJobs();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/public/{id}")
     public Job getJob(@PathVariable Long id) {
     	//GET http://localhost:8082/jobs/1
 
         return jobService.getJobById(id);
     }
 
-    @GetMapping("/search")
+    @GetMapping("/public/search")
     public List<Job> searchJobs(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String location) {
@@ -67,4 +71,9 @@ public class JobController {
 
         return jobService.deleteJob(id, email);
     }
+    @GetMapping("/public/jobs-with-recruiter")
+    public List<JobWithRecruiterDTO> getJobsWithRecruiter() {
+        return jobService.getAllJobsWithRecruiter();
+    }
+
 }

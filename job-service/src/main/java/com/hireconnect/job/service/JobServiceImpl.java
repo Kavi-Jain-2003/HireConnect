@@ -1,14 +1,18 @@
 package com.hireconnect.job.service;
 
 import java.time.LocalDateTime;
+
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
 import com.hireconnect.job.dto.JobRequest;
+import com.hireconnect.job.dto.JobWithRecruiterDTO;
 import com.hireconnect.job.entity.Job;
 import com.hireconnect.job.repository.JobRepository;
-
+import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.*;
 @Service
 public class JobServiceImpl implements JobService {
 
@@ -73,7 +77,7 @@ public class JobServiceImpl implements JobService {
         Job job = getJobById(id);
 
         if (!job.getPostedBy().equals(email)) {
-            throw new RuntimeException("Unauthorized");
+            throw new RuntimeException("Unauthorized,You are not allowed to modify this job");
         }
 
         job.setTitle(request.getTitle());
@@ -91,11 +95,48 @@ public class JobServiceImpl implements JobService {
         Job job = getJobById(id);
 
         if (!job.getPostedBy().equals(email)) {
-            throw new RuntimeException("Unauthorized");
+            throw new RuntimeException("Unauthorized,You are not allowed to modify this job");
         }
 
         jobRepository.delete(job);
 
         return "Job deleted";
+    }
+   
+
+    @Override
+    public List<JobWithRecruiterDTO> getAllJobsWithRecruiter() {
+
+        List<Job> jobs = jobRepository.findAll();
+        List<JobWithRecruiterDTO> result = new ArrayList<>();
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        String url = "http://localhost:8083/profiles/public/recruiters";
+        List<Map> recruiters = restTemplate.getForObject(url, List.class);
+
+        for (Job job : jobs) {
+
+            for (Map r : recruiters) {
+
+                if (r.get("email").equals(job.getPostedBy())) {
+
+                    JobWithRecruiterDTO dto = new JobWithRecruiterDTO();
+
+                    dto.setId(job.getJobId());
+                    dto.setTitle(job.getTitle());
+                    dto.setLocation(job.getLocation());
+                    dto.setDescription(job.getDescription());
+
+                    dto.setRecruiterName((String) r.get("fullName"));
+                    dto.setCompanyName((String) r.get("companyName"));
+
+                    result.add(dto);
+                    break;
+                }
+            }
+        }
+
+        return result;
     }
 }
