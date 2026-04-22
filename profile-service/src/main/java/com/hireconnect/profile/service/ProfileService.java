@@ -13,6 +13,10 @@ public interface ProfileService {
 
     RecruiterProfile updateRecruiterProfile(Long id, RecruiterProfile profile,String email);
 
+    CandidateProfile getCandidateByEmail(String email);
+
+    RecruiterProfile getRecruiterByEmail(String email);
+
     void deleteCandidateProfile(Long id, String email);
 
     void deleteRecruiterProfile(Long id,String email);

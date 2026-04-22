@@ -15,12 +15,20 @@ public class CandidateProfile {
     private String mobile;
 
     @ElementCollection
+    @CollectionTable(
+        name = "candidate_profile_skills",
+        foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
+    )
     private List<String> skills;
 
     private int experience;
     private String resumeUrl;
 
     @ElementCollection
+    @CollectionTable(
+        name = "candidate_profile_addresses",
+        foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
+    )
     private List<Address> addresses;
 
     private String role = "CANDIDATE";

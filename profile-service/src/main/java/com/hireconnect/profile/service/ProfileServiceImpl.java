@@ -56,6 +56,18 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     @Override
+    public CandidateProfile getCandidateByEmail(String email) {
+        return candidateRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Candidate not found"));
+    }
+
+    @Override
+    public RecruiterProfile getRecruiterByEmail(String email) {
+        return recruiterRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Recruiter not found"));
+    }
+
+    @Override
     public void deleteCandidateProfile(Long id, String email) {
 
         CandidateProfile existing = candidateRepo.findById(id)

@@ -44,6 +44,16 @@ public class ProfileResource {
         return "Recruiter profile created successfully";
     }
 
+    @GetMapping("/public/candidate/email/{email}")
+    public CandidateProfile getCandidateByEmail(@PathVariable String email) {
+        return profileService.getCandidateByEmail(email);
+    }
+
+    @GetMapping("/public/recruiter/email/{email}")
+    public RecruiterProfile getRecruiterByEmail(@PathVariable String email) {
+        return profileService.getRecruiterByEmail(email);
+    }
+
 
     @PutMapping("/candidate/{id}")
     public String updateCandidate(@PathVariable Long id,
