@@ -40,7 +40,9 @@ public class Job {
 
 	private String status; // OPEN, CLOSED
 
+	@Column(name = "created_at")
 	private LocalDateTime postedAt;
+
 
 	public Job() {
 	}

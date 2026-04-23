@@ -37,9 +37,7 @@ public class JobServiceImpl implements JobService {
         job.setDescription(request.getDescription());
         job.setCompany(request.getCompany());
 
-        job.setPostedBy(email);
-        job.setStatus("OPEN");
-        job.setPostedAt(LocalDateTime.now());
+        job.setPostedBy(email);   
 
         jobRepository.save(job);
 
