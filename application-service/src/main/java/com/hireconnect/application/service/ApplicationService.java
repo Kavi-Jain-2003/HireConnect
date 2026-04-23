@@ -18,4 +18,6 @@ public interface ApplicationService {
     ApplicationResponse updateStatus(Long applicationId, UpdateStatusRequest request);
 
     ApplicationResponse withdrawApplication(Long applicationId);
+    Long countByJob(Long jobId);
+
 }

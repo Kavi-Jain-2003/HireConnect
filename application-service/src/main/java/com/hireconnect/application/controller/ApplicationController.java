@@ -53,4 +53,9 @@ public class ApplicationController {
     public ResponseEntity<ApplicationResponse> withdraw(@PathVariable Long id) {
         return ResponseEntity.ok(service.withdrawApplication(id));
     }
+    @GetMapping("/job/{id}/count")
+    public ResponseEntity<Long> countByJob(@PathVariable Long id) {
+        return ResponseEntity.ok(service.countByJob(id));
+    }
+
 }

@@ -12,7 +12,7 @@ import com.hireconnect.application.exception.ResourceNotFoundException;
 import com.hireconnect.application.repository.ApplicationRepository;
 import org.springframework.web.client.RestTemplate;
 import java.util.Map;
-
+import com.hireconnect.application.exception.BusinessException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
@@ -64,7 +64,8 @@ public class ApplicationServiceImpl implements ApplicationService {
     public ApplicationResponse submitApplication(ApplicationRequest request) {
 
         if (!getLoggedInUserRole().equals("ROLE_CANDIDATE")) {
-            throw new RuntimeException("Only candidates can apply");
+        	throw new BusinessException("Only candidates can apply");
+
         }
 
         String email = getLoggedInUserEmail();
@@ -72,8 +73,19 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         validateJob(request.getJobId());
 
-        repository.findFirstByJobIdAndCandidateId(request.getJobId(), candidateId).ifPresent(a -> {
-            throw new RuntimeException("Already applied for this job");
+        repository.findFirstByJobIdAndCandidateId(request.getJobId(), candidateId)
+        .ifPresent(existing -> {
+
+            if (existing.getStatus() != ApplicationStatus.WITHDRAWN) {
+                throw new BusinessException("You have already applied for this job");
+            }
+
+            // ✅ If withdrawn → allow reapply by deleting old record OR updating it
+            repository.delete(existing); 
+            // OR alternatively:
+            // existing.setStatus(ApplicationStatus.APPLIED);
+            // existing.setAppliedAt(LocalDateTime.now());
+            // repository.save(existing);
         });
 
 		Application app = new Application();
@@ -88,19 +100,40 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 		return new ApplicationResponse("Application submitted successfully", saved.getApplicationId());
 	}
-
+//Applied → Shortlisted → Interview Scheduled →	Offered / Rejected) 
 	// UPDATE STATUS (ONLY RECRUITER)
 	@Override
 	public ApplicationResponse updateStatus(Long applicationId, UpdateStatusRequest request) {
 
 		if (!getLoggedInUserRole().equals("ROLE_RECRUITER")) {
-			throw new RuntimeException("Only recruiters can update status");
+			throw new BusinessException("Only recruiters can update status");
 		}
 
 		Application app = repository.findById(applicationId)
 				.orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+		ApplicationStatus current = app.getStatus();
+		ApplicationStatus next = request.getStatus();
 
-		app.setStatus(request.getStatus());
+		// ❗ Prevent change after final state
+		if (current == ApplicationStatus.OFFERED || current == ApplicationStatus.REJECTED) {
+		    throw new BusinessException("Application already finalized");
+		}
+
+		// ❗ Enforce valid transitions
+		if (current == ApplicationStatus.APPLIED && next != ApplicationStatus.SHORTLISTED) {
+		    throw new BusinessException("Invalid status transition: APPLIED → " + next);
+		}
+
+		if (current == ApplicationStatus.SHORTLISTED && next != ApplicationStatus.INTERVIEW_SCHEDULED) {
+		    throw new BusinessException("Invalid status transition: SHORTLISTED → " + next);
+		}
+
+		if (current == ApplicationStatus.INTERVIEW_SCHEDULED &&
+		        !(next == ApplicationStatus.OFFERED || next == ApplicationStatus.REJECTED)) {
+		    throw new BusinessException("Invalid status transition: INTERVIEW_SCHEDULED → " + next);
+		}
+
+		app.setStatus(next);
 		repository.save(app);
 
 		return new ApplicationResponse("Application status updated successfully", app.getApplicationId());
@@ -116,7 +149,17 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
 
 		if (!app.getCandidateId().equals(candidateId)) {
-			throw new RuntimeException("You can only withdraw your own application");
+			throw new BusinessException("You can only withdraw your own application");
+		}
+		if (app.getStatus() == ApplicationStatus.WITHDRAWN) {
+		    throw new BusinessException("Application already withdrawn");
+		}
+
+		// ❗ Prevent withdraw after final decision
+		if (app.getStatus() == ApplicationStatus.OFFERED ||
+		    app.getStatus() == ApplicationStatus.REJECTED) {
+
+		    throw new BusinessException("Cannot withdraw after final decision");
 		}
 
 		app.setStatus(ApplicationStatus.WITHDRAWN);
@@ -134,4 +177,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 	public List<Application> getByJob(Long jobId) {
 		return repository.findByJobId(jobId);
 	}
+	@Override
+	public Long countByJob(Long jobId) {
+
+	    // optional: validate job exists
+	    validateJob(jobId);
+
+	    return repository.countByJobId(jobId);
+	}
+
 }
