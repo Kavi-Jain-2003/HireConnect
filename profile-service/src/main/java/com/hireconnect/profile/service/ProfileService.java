@@ -15,7 +15,11 @@ public interface ProfileService {
 
     CandidateProfile getCandidateByEmail(String email);
 
+    CandidateProfile getCandidateById(Long id);
+
     RecruiterProfile getRecruiterByEmail(String email);
+
+    RecruiterProfile getRecruiterById(Long id);
 
     void deleteCandidateProfile(Long id, String email);
 

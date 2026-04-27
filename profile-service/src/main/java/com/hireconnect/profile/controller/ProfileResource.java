@@ -49,9 +49,19 @@ public class ProfileResource {
         return profileService.getCandidateByEmail(email);
     }
 
+    @GetMapping("/public/candidate/id/{id}")
+    public CandidateProfile getCandidateById(@PathVariable Long id) {
+        return profileService.getCandidateById(id);
+    }
+
     @GetMapping("/public/recruiter/email/{email}")
     public RecruiterProfile getRecruiterByEmail(@PathVariable String email) {
         return profileService.getRecruiterByEmail(email);
+    }
+
+    @GetMapping("/public/recruiter/id/{id}")
+    public RecruiterProfile getRecruiterById(@PathVariable Long id) {
+        return profileService.getRecruiterById(id);
     }
 
 
