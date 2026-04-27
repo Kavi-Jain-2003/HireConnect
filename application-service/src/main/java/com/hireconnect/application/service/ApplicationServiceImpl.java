@@ -12,6 +12,7 @@ import com.hireconnect.application.exception.ResourceNotFoundException;
 import com.hireconnect.application.repository.ApplicationRepository;
 import org.springframework.web.client.RestTemplate;
 import java.util.Map;
+import java.util.HashMap;
 import com.hireconnect.application.exception.BusinessException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -34,9 +35,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         return SecurityContextHolder.getContext().getAuthentication().getAuthorities().iterator().next().getAuthority();
     }
 
-    private void validateJob(Long jobId) {
+    private Map<String, Object> validateJob(Long jobId) {
         try {
-            restTemplate.getForObject("http://localhost:8082/jobs/public/" + jobId, Object.class);
+            return restTemplate.getForObject("http://localhost:8082/jobs/public/" + jobId, Map.class);
         } catch (Exception e) {
             throw new ResourceNotFoundException("Job not found with id: " + jobId);
         }
@@ -56,6 +57,38 @@ public class ApplicationServiceImpl implements ApplicationService {
             return Long.valueOf(candidate.get("profileId").toString());
         } catch (Exception e) {
             throw new ResourceNotFoundException("Candidate not found with email: " + email);
+        }
+    }
+
+    private Map<String, Object> getCandidateById(Long candidateId) {
+        try {
+            return restTemplate.getForObject(
+                    "http://localhost:8083/profiles/public/candidate/id/" + candidateId,
+                    Map.class
+            );
+        } catch (Exception e) {
+            throw new ResourceNotFoundException("Candidate not found with id: " + candidateId);
+        }
+    }
+
+    private void notifyCandidate(Long candidateId, Long jobId, String status) {
+        try {
+            Map<String, Object> job = validateJob(jobId);
+            Map<String, Object> candidate = getCandidateById(candidateId);
+
+            String candidateEmail = candidate.get("email") == null ? null : candidate.get("email").toString();
+            String jobTitle = job.get("title") == null ? "your job application" : job.get("title").toString();
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("userId", candidateId);
+            payload.put("type", "APPLICATION_STATUS");
+            payload.put("subject", "Application update");
+            payload.put("email", candidateEmail);
+            payload.put("message", "Your application for \"" + jobTitle + "\" is now " + status.replace('_', ' ') + ".");
+
+            restTemplate.postForObject("http://localhost:8086/notifications/public/dispatch", payload, Map.class);
+        } catch (Exception ignored) {
+            // Keep application updates lightweight and resilient if notifications are temporarily unavailable.
         }
     }
 
@@ -135,6 +168,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 		app.setStatus(next);
 		repository.save(app);
+		notifyCandidate(app.getCandidateId(), app.getJobId(), next.name().replace('_', ' '));
 
 		return new ApplicationResponse("Application status updated successfully", app.getApplicationId());
 	}
@@ -177,6 +211,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 	public List<Application> getByJob(Long jobId) {
 		return repository.findByJobId(jobId);
 	}
+
+	@Override
+    public Application getApplicationById(Long applicationId) {
+        return repository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+    }
 	@Override
 	public Long countByJob(Long jobId) {
 

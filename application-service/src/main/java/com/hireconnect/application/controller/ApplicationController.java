@@ -39,6 +39,11 @@ public class ApplicationController {
         return ResponseEntity.ok(service.getByJob(id));
     }
 
+    @GetMapping("/public/{id}")
+    public ResponseEntity<Application> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getApplicationById(id));
+    }
+
     // ---------------- UPDATE STATUS ----------------
     @PutMapping("/{id}/status")
     public ResponseEntity<ApplicationResponse> updateStatus(
