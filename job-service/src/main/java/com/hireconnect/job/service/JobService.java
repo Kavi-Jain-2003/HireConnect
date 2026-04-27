@@ -14,7 +14,7 @@ public interface JobService {
 
     Job getJobById(Long id);
 
-    List<Job> searchJobs(String title, String location);
+    List<Job> searchJobs(String title, String location, String category, Double minSalary, Double maxSalary, Integer experience);
 
     String updateJob(Long id, JobRequest request, String userEmail);
 

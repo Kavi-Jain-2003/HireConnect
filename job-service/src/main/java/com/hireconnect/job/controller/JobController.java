@@ -47,10 +47,14 @@ public class JobController {
     @GetMapping("/public/search")
     public List<Job> searchJobs(
             @RequestParam(required = false) String title,
-            @RequestParam(required = false) String location) {
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Double minSalary,
+            @RequestParam(required = false) Double maxSalary,
+            @RequestParam(required = false) Integer experience) {
 //GET http://localhost:8082/jobs/search?location=Delhi
 
-        return jobService.searchJobs(title, location);
+        return jobService.searchJobs(title, location, category, minSalary, maxSalary, experience);
     }
 
     @PutMapping("/{id}")

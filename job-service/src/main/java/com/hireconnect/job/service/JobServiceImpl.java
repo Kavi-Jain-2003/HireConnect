@@ -17,9 +17,42 @@ import java.util.*;
 public class JobServiceImpl implements JobService {
 
     private final JobRepository jobRepository;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     public JobServiceImpl(JobRepository jobRepository) {
         this.jobRepository = jobRepository;
+    }
+
+    private void notifyCandidates(Job job) {
+        try {
+            List<Map> candidates = restTemplate.getForObject("http://localhost:8083/profiles/public/candidates", List.class);
+            if (candidates == null || candidates.isEmpty()) {
+                return;
+            }
+
+            for (Map candidate : candidates) {
+                Object candidateId = candidate.get("profileId");
+                Object email = candidate.get("email");
+                if (candidateId == null || email == null) {
+                    continue;
+                }
+
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("userId", Long.valueOf(candidateId.toString()));
+                payload.put("type", "JOB_ALERT");
+                payload.put("subject", "New job alert");
+                payload.put("email", email.toString());
+                payload.put("message", "New job posted: \"" + job.getTitle() + "\" in " + job.getLocation() + ".");
+
+                try {
+                    restTemplate.postForObject("http://localhost:8086/notifications/public/dispatch", payload, Map.class);
+                } catch (Exception ignored) {
+                    // Keep job creation lightweight and resilient if notifications are temporarily unavailable.
+                }
+            }
+        } catch (Exception ignored) {
+            // Keep job creation lightweight even if profile or notification services are unavailable.
+        }
     }
 
     @Override
@@ -39,7 +72,8 @@ public class JobServiceImpl implements JobService {
 
         job.setPostedBy(email);   
 
-        jobRepository.save(job);
+        Job saved = jobRepository.save(job);
+        notifyCandidates(saved);
 
         return "Job created successfully";
     }
@@ -56,17 +90,24 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public List<Job> searchJobs(String title, String location) {
+    public List<Job> searchJobs(String title, String location, String category, Double minSalary, Double maxSalary, Integer experience) {
 
-        if (title != null) {
-            return jobRepository.findByTitleContainingIgnoreCase(title);
-        }
+        List<Job> jobs = jobRepository.findAll();
 
-        if (location != null) {
-            return jobRepository.findByLocation(location);
-        }
-
-        return jobRepository.findAll();
+        return jobs.stream()
+                .filter(job -> title == null || title.isBlank()
+                        || (job.getTitle() != null && job.getTitle().toLowerCase().contains(title.toLowerCase())))
+                .filter(job -> location == null || location.isBlank()
+                        || (job.getLocation() != null && job.getLocation().equalsIgnoreCase(location)))
+                .filter(job -> category == null || category.isBlank()
+                        || (job.getCategory() != null && job.getCategory().equalsIgnoreCase(category)))
+                .filter(job -> minSalary == null
+                        || (job.getSalaryMax() != null && job.getSalaryMax() >= minSalary))
+                .filter(job -> maxSalary == null
+                        || (job.getSalaryMin() != null && job.getSalaryMin() <= maxSalary))
+                .filter(job -> experience == null
+                        || (job.getExperienceRequired() != null && job.getExperienceRequired() <= experience))
+                .toList();
     }
 
     @Override
