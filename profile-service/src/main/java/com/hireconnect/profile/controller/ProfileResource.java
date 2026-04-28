@@ -3,9 +3,11 @@ package com.hireconnect.profile.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.hireconnect.profile.entity.*;
+import com.hireconnect.profile.dto.ApiResponse;
 import com.hireconnect.profile.service.ProfileService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +20,7 @@ public class ProfileResource {
     private ProfileService profileService;
 
     @PostMapping("/candidate")
-    public String addCandidate(@RequestBody CandidateProfile profile,
+    public ResponseEntity<ApiResponse> addCandidate(@RequestBody CandidateProfile profile,
                                HttpServletRequest request) {
 
         String email = (String) request.getAttribute("email");
@@ -27,12 +29,12 @@ public class ProfileResource {
 
         profileService.addCandidateProfile(profile);
 
-        return "Candidate profile created successfully";
+        return ResponseEntity.ok(ApiResponse.of("Candidate profile created successfully", null));
     }
 
 
     @PostMapping("/recruiter")
-    public String addRecruiter(@RequestBody RecruiterProfile profile,
+    public ResponseEntity<ApiResponse> addRecruiter(@RequestBody RecruiterProfile profile,
                                HttpServletRequest request) {
 
         String email = (String) request.getAttribute("email");
@@ -41,32 +43,32 @@ public class ProfileResource {
 
         profileService.addRecruiterProfile(profile);
 
-        return "Recruiter profile created successfully";
+        return ResponseEntity.ok(ApiResponse.of("Recruiter profile created successfully", null));
     }
 
     @GetMapping("/public/candidate/email/{email}")
-    public CandidateProfile getCandidateByEmail(@PathVariable String email) {
-        return profileService.getCandidateByEmail(email);
+    public ResponseEntity<ApiResponse> getCandidateByEmail(@PathVariable String email) {
+        return ResponseEntity.ok(ApiResponse.of("Candidate profile fetched successfully", profileService.getCandidateByEmail(email)));
     }
 
     @GetMapping("/public/candidate/id/{id}")
-    public CandidateProfile getCandidateById(@PathVariable Long id) {
-        return profileService.getCandidateById(id);
+    public ResponseEntity<ApiResponse> getCandidateById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.of("Candidate profile fetched successfully", profileService.getCandidateById(id)));
     }
 
     @GetMapping("/public/recruiter/email/{email}")
-    public RecruiterProfile getRecruiterByEmail(@PathVariable String email) {
-        return profileService.getRecruiterByEmail(email);
+    public ResponseEntity<ApiResponse> getRecruiterByEmail(@PathVariable String email) {
+        return ResponseEntity.ok(ApiResponse.of("Recruiter profile fetched successfully", profileService.getRecruiterByEmail(email)));
     }
 
     @GetMapping("/public/recruiter/id/{id}")
-    public RecruiterProfile getRecruiterById(@PathVariable Long id) {
-        return profileService.getRecruiterById(id);
+    public ResponseEntity<ApiResponse> getRecruiterById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.of("Recruiter profile fetched successfully", profileService.getRecruiterById(id)));
     }
 
 
     @PutMapping("/candidate/{id}")
-    public String updateCandidate(@PathVariable Long id,
+    public ResponseEntity<ApiResponse> updateCandidate(@PathVariable Long id,
                                   @RequestBody CandidateProfile profile,
                                   HttpServletRequest request) {
 
@@ -74,48 +76,47 @@ public class ProfileResource {
 
         profileService.updateCandidateProfile(id, profile, email);
 
-        return "Candidate updated successfully";
+        return ResponseEntity.ok(ApiResponse.of("Candidate updated successfully", null));
     }
 
 
     @PutMapping("/recruiter/{id}")
-    public String updateRecruiter(@PathVariable Long id,
+    public ResponseEntity<ApiResponse> updateRecruiter(@PathVariable Long id,
                                             @RequestBody RecruiterProfile profile, HttpServletRequest request) {
     	 String email = (String) request.getAttribute("email");
 
     	    profileService.updateRecruiterProfile(id, profile, email);
 
-    	    return "Recruiter updated successfully";
+    	    return ResponseEntity.ok(ApiResponse.of("Recruiter updated successfully", null));
     }
 
     @DeleteMapping("/candidate/{id}")
-    public String deleteCandidate(@PathVariable Long id,
+    public ResponseEntity<ApiResponse> deleteCandidate(@PathVariable Long id,
                                   HttpServletRequest request) {
 
         String email = (String) request.getAttribute("email");
 
         profileService.deleteCandidateProfile(id, email);
 
-        return "Candidate deleted successfully";
+        return ResponseEntity.ok(ApiResponse.of("Candidate deleted successfully", null));
     }
 
     @DeleteMapping("/recruiter/{id}")
-    public String deleteRecruiter(@PathVariable Long id,HttpServletRequest request) {
+    public ResponseEntity<ApiResponse> deleteRecruiter(@PathVariable Long id,HttpServletRequest request) {
     	String email = (String) request.getAttribute("email");
 
         profileService.deleteRecruiterProfile(id, email);
 
-  
-        return "Recruiter deleted successfully";
+        return ResponseEntity.ok(ApiResponse.of("Recruiter deleted successfully", null));
     }
     @GetMapping("/public/candidates")
-    public List<CandidateProfile> getAllCandidates() {
-        return profileService.getAllCandidates();
+    public ResponseEntity<ApiResponse> getAllCandidates() {
+        return ResponseEntity.ok(ApiResponse.of("Candidates fetched successfully", profileService.getAllCandidates()));
     }
 
     @GetMapping("/public/recruiters")
-    public List<RecruiterProfile> getAllRecruiters() {
-        return profileService.getAllRecruiters();
+    public ResponseEntity<ApiResponse> getAllRecruiters() {
+        return ResponseEntity.ok(ApiResponse.of("Recruiters fetched successfully", profileService.getAllRecruiters()));
     }
 
 }
