@@ -1,6 +1,8 @@
 package com.hireconnect.auth.security;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.JwtBuilder;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
@@ -19,16 +21,25 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    // Generate Token
+    // Generate token with the basic claims needed by other services
     public String generateToken(String email, String role) {
+        return generateToken(email, role, null);
+    }
 
-        return Jwts.builder()
+    public String generateToken(String email, String role, Long userId) {
+
+        JwtBuilder builder = Jwts.builder()
                 .setSubject(email)
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256);
+
+        if (userId != null) {
+            builder.claim("userId", userId);
+        }
+
+        return builder.compact();
     }
 
     // Extract email (optional later)

@@ -76,7 +76,7 @@ public class AuthServiceImpl implements AuthService {
 			throw new RuntimeException("Invalid email or passwords");
 		}
 
-		String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+		String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getUserId());
 
 		return new LoginResponse(token, user.getEmail(), user.getRole().name());
 	}
@@ -105,8 +105,10 @@ public class AuthServiceImpl implements AuthService {
 		try {
 			String email = jwtUtil.extractEmail(token);
 			String role = jwtUtil.extractRole(token);
+			UserCredential user = authRepository.findByEmail(email)
+					.orElseThrow(() -> new RuntimeException("User not found"));
 
-			String newToken = jwtUtil.generateToken(email, role);
+			String newToken = jwtUtil.generateToken(email, role, user.getUserId());
 
 			return new LoginResponse(newToken, email, role);
 

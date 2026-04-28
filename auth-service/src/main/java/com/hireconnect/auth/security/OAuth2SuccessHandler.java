@@ -53,11 +53,11 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             newUser.setProvider(AuthProvider.GITHUB);
             newUser.setCreatedAt(LocalDateTime.now());
 
-            authRepository.save(newUser);
+            existingUser = authRepository.save(newUser);
         }
 
         // 🔐 Generate JWT
-        String token = jwtUtil.generateToken(email, "CANDIDATE");
+        String token = jwtUtil.generateToken(email, "CANDIDATE", existingUser.getUserId());
 
         // 👉 Return token in response
         response.getWriter().write("JWT Token: " + token);

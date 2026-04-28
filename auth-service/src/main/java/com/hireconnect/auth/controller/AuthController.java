@@ -1,12 +1,14 @@
 package com.hireconnect.auth.controller;
 
 import com.hireconnect.auth.dto.LoginRequest;
+import com.hireconnect.auth.dto.ApiResponse;
 import com.hireconnect.auth.dto.LoginResponse;
 import com.hireconnect.auth.dto.RefreshTokenRequest;
 import com.hireconnect.auth.dto.RegisterRequest;
 import com.hireconnect.auth.dto.TokenValidationResponse;
 import com.hireconnect.auth.service.AuthService;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,12 +22,13 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public String register(@RequestBody RegisterRequest request) {
-        return authService.register(request);
+    public ResponseEntity<ApiResponse> register(@RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(ApiResponse.of(authService.register(request), null));
     }
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest request) {
-        return authService.login(request);
+    public ResponseEntity<ApiResponse> login(@RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.of("Login successful", response));
     }
 
 //    public String login(@RequestBody LoginRequest request)
@@ -33,20 +36,21 @@ public class AuthController {
 //    	return authService.login(request);
 //    }
     @PostMapping("/logout")
-    public String logout(@RequestHeader("Authorization") String header) {
-        String token = header.substring(7);
-        return "Logged out successfully";
+    public ResponseEntity<ApiResponse> logout(@RequestHeader("Authorization") String header) {
+        return ResponseEntity.ok(ApiResponse.of("Logged out successfully", null));
 
     }
 
     @PostMapping("/validate")
-    public TokenValidationResponse validate(@RequestBody RefreshTokenRequest request) {
-        return authService.validateToken(request.getToken());
+    public ResponseEntity<ApiResponse> validate(@RequestBody RefreshTokenRequest request) {
+        TokenValidationResponse response = authService.validateToken(request.getToken());
+        return ResponseEntity.ok(ApiResponse.of("Token validation result", response));
     }
 
     @PostMapping("/refresh")
-    public LoginResponse refresh(@RequestBody RefreshTokenRequest request) {
-        return authService.refreshToken(request.getToken());
+    public ResponseEntity<ApiResponse> refresh(@RequestBody RefreshTokenRequest request) {
+        LoginResponse response = authService.refreshToken(request.getToken());
+        return ResponseEntity.ok(ApiResponse.of("Token refreshed", response));
     }
 }
 @RestController
@@ -54,7 +58,7 @@ public class AuthController {
  class TestController {
 
     @GetMapping("/test")
-    public String test() {
-        return "Protected API working!";
+    public ApiResponse test() {
+        return ApiResponse.of("Protected API working!", null);
     }
 }
