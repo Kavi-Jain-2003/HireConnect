@@ -53,6 +53,15 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    public void markAsRead(Long notificationId, Long currentUserId) {
+        Notification n = repo.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+        verifyOwnership(n, currentUserId);
+        n.setRead(true);
+        repo.save(n);
+    }
+
+    @Override
     public void markAllRead(Long userId) {
         List<Notification> list = repo.findByUserIdAndIsRead(userId, false);
         if (!list.isEmpty()) {
@@ -68,6 +77,14 @@ public class NotificationServiceImpl implements NotificationService {
         if (!repo.existsById(notificationId)) {
             throw new RuntimeException("Notification not found");
         }
+        repo.deleteByNotificationId(notificationId);
+    }
+
+    @Override
+    public void deleteNotification(Long notificationId, Long currentUserId) {
+        Notification n = repo.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+        verifyOwnership(n, currentUserId);
         repo.deleteByNotificationId(notificationId);
     }
 
@@ -140,5 +157,11 @@ public class NotificationServiceImpl implements NotificationService {
             return status;
         }
         return status + ": " + message;
+    }
+
+    private void verifyOwnership(Notification notification, Long currentUserId) {
+        if (currentUserId == null || notification.getUserId() == null || !currentUserId.equals(notification.getUserId())) {
+            throw new RuntimeException("You are not allowed to modify this notification");
+        }
     }
 }
