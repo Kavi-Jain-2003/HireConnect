@@ -2,6 +2,7 @@ package com.hireconnect.application.controller;
 
 import java.util.List;
 
+import com.hireconnect.application.dto.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,44 +24,47 @@ public class ApplicationController {
 
     // ---------------- APPLY ----------------
     @PostMapping
-    public ResponseEntity<ApplicationResponse> apply(@RequestBody ApplicationRequest request) {
-        return ResponseEntity.ok(service.submitApplication(request));
+    public ResponseEntity<ApiResponse> apply(@RequestBody ApplicationRequest request) {
+        ApplicationResponse response = service.submitApplication(request);
+        return ResponseEntity.ok(ApiResponse.of(response.getMessage(), response.getApplicationId()));
     }
 
     // ---------------- BY CANDIDATE ----------------
     @GetMapping("/candidate/{id}")
-    public ResponseEntity<List<Application>> getByCandidate(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getByCandidate(id));
+    public ResponseEntity<ApiResponse> getByCandidate(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.of("Applications fetched successfully", service.getByCandidate(id)));
     }
 
     // ---------------- BY JOB ----------------
     @GetMapping("/job/{id}")
-    public ResponseEntity<List<Application>> getByJob(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getByJob(id));
+    public ResponseEntity<ApiResponse> getByJob(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.of("Applications fetched successfully", service.getByJob(id)));
     }
 
     @GetMapping("/public/{id}")
-    public ResponseEntity<Application> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getApplicationById(id));
+    public ResponseEntity<ApiResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.of("Application fetched successfully", service.getApplicationById(id)));
     }
 
     // ---------------- UPDATE STATUS ----------------
     @PutMapping("/{id}/status")
-    public ResponseEntity<ApplicationResponse> updateStatus(
+    public ResponseEntity<ApiResponse> updateStatus(
             @PathVariable Long id,
             @RequestBody UpdateStatusRequest request) {
 
-        return ResponseEntity.ok(service.updateStatus(id, request));
+        ApplicationResponse response = service.updateStatus(id, request);
+        return ResponseEntity.ok(ApiResponse.of(response.getMessage(), response.getApplicationId()));
     }
 
     // ---------------- WITHDRAW ----------------
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApplicationResponse> withdraw(@PathVariable Long id) {
-        return ResponseEntity.ok(service.withdrawApplication(id));
+    public ResponseEntity<ApiResponse> withdraw(@PathVariable Long id) {
+        ApplicationResponse response = service.withdrawApplication(id);
+        return ResponseEntity.ok(ApiResponse.of(response.getMessage(), response.getApplicationId()));
     }
     @GetMapping("/job/{id}/count")
-    public ResponseEntity<Long> countByJob(@PathVariable Long id) {
-        return ResponseEntity.ok(service.countByJob(id));
+    public ResponseEntity<ApiResponse> countByJob(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.of("Application count fetched successfully", service.countByJob(id)));
     }
 
 }
