@@ -20,5 +20,11 @@ public interface JobService {
 
     String deleteJob(Long id, String userEmail);
 
+    String pauseJob(Long id, String userEmail);
+
+    String closeJob(Long id, String userEmail);
+
+    List<Job> getJobsByStatus(String status);
+
 	List<JobWithRecruiterDTO> getAllJobsWithRecruiter();
 }

@@ -141,6 +141,41 @@ public class JobServiceImpl implements JobService {
 
         return "Job deleted";
     }
+
+    @Override
+    public String pauseJob(Long id, String email) {
+
+        Job job = getJobById(id);
+
+        if (!job.getPostedBy().equals(email)) {
+            throw new RuntimeException("Unauthorized,You are not allowed to modify this job");
+        }
+
+        job.setStatus("PAUSED");
+        jobRepository.save(job);
+
+        return "Job paused";
+    }
+
+    @Override
+    public String closeJob(Long id, String email) {
+
+        Job job = getJobById(id);
+
+        if (!job.getPostedBy().equals(email)) {
+            throw new RuntimeException("Unauthorized,You are not allowed to modify this job");
+        }
+
+        job.setStatus("CLOSED");
+        jobRepository.save(job);
+
+        return "Job closed";
+    }
+
+    @Override
+    public List<Job> getJobsByStatus(String status) {
+        return jobRepository.findByStatus(status);
+    }
    
 
     @Override
