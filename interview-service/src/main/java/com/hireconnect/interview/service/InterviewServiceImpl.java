@@ -1,10 +1,15 @@
 package com.hireconnect.interview.service;
 
+import com.hireconnect.interview.client.ApplicationClient;
+import com.hireconnect.interview.client.JobClient;
+import com.hireconnect.interview.client.NotificationClient;
+import com.hireconnect.interview.client.ProfileClient;
 import com.hireconnect.interview.entity.Interview;
+import com.hireconnect.interview.dto.ApiResponse;
 import com.hireconnect.interview.repository.InterviewRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,30 +19,41 @@ import java.util.Map;
 @Service
 public class InterviewServiceImpl implements InterviewService {
 
-    @Autowired
-    private InterviewRepository repository;
+    private final InterviewRepository repository;
+    private final ApplicationClient applicationClient;
+    private final ProfileClient profileClient;
+    private final JobClient jobClient;
+    private final NotificationClient notificationClient;
+    private final ObjectMapper objectMapper;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    public InterviewServiceImpl(
+            InterviewRepository repository,
+            ApplicationClient applicationClient,
+            ProfileClient profileClient,
+            JobClient jobClient,
+            NotificationClient notificationClient,
+            ObjectMapper objectMapper) {
+        this.repository = repository;
+        this.applicationClient = applicationClient;
+        this.profileClient = profileClient;
+        this.jobClient = jobClient;
+        this.notificationClient = notificationClient;
+        this.objectMapper = objectMapper;
+    }
 
     private Map<String, Object> getApplication(long applicationId) {
-        return restTemplate.getForObject(
-                "http://localhost:8084/applications/public/" + applicationId,
-                Map.class
-        );
+        ApiResponse response = applicationClient.getApplicationById(applicationId);
+        return toMap(response == null ? null : response.getData());
     }
 
     private Map<String, Object> getCandidate(long candidateId) {
-        return restTemplate.getForObject(
-                "http://localhost:8083/profiles/public/candidate/id/" + candidateId,
-                Map.class
-        );
+        ApiResponse response = profileClient.getCandidateById(candidateId);
+        return toMap(response == null ? null : response.getData());
     }
 
     private Map<String, Object> getJob(long jobId) {
-        return restTemplate.getForObject(
-                "http://localhost:8082/jobs/public/" + jobId,
-                Map.class
-        );
+        ApiResponse response = jobClient.getJobById(jobId);
+        return toMap(response == null ? null : response.getData());
     }
 
     private void notifyCandidate(Interview interview, String eventLabel) {
@@ -68,7 +84,7 @@ public class InterviewServiceImpl implements InterviewService {
             payload.put("message", "Interview " + eventLabel.toLowerCase() + " for \"" + jobTitle
                     + "\". Scheduled for " + interview.getScheduledAt() + ".");
 
-            restTemplate.postForObject("http://localhost:8086/notifications/public/dispatch", payload, Map.class);
+            notificationClient.dispatch(payload);
         } catch (Exception ignored) {
             // Interview scheduling should succeed even when notification delivery is temporarily unavailable.
         }
@@ -117,5 +133,13 @@ public class InterviewServiceImpl implements InterviewService {
     @Override
     public List<Interview> getByStatus(String status) {
         return repository.findByStatus(status);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> toMap(Object data) {
+        if (data == null) {
+            return null;
+        }
+        return objectMapper.convertValue(data, Map.class);
     }
 }
