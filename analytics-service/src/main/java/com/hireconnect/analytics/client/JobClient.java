@@ -1,52 +1,26 @@
 package com.hireconnect.analytics.client;
 
 import com.hireconnect.analytics.dto.ApiResponse;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 
-@Component
-public class JobClient {
+@FeignClient(name = "job-service")
+public interface JobClient {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    @GetMapping("/jobs/public")
+    ApiResponse getAllJobs(@RequestHeader(value = "Authorization", required = false) String authHeader);
 
-    @Value("${services.job-url}")
-    private String jobServiceUrl;
-
-    public ApiResponse getAllJobs() {
-        return restTemplate.getForObject(jobServiceUrl + "/jobs/public", ApiResponse.class);
+    default ApiResponse getAllJobs() {
+        return getAllJobs(null);
     }
 
-    public ApiResponse getJobById(Long id) {
-        if (id == null) {
-            return null;
-        }
+    @GetMapping("/jobs/public/{id}")
+    ApiResponse getJobById(@PathVariable("id") Long id,
+                           @RequestHeader(value = "Authorization", required = false) String authHeader);
 
-        return restTemplate.getForObject(jobServiceUrl + "/jobs/public/" + id, ApiResponse.class);
-    }
-
-    public ApiResponse getAllJobs(String authHeader) {
-        return exchangeGet(jobServiceUrl + "/jobs/public", authHeader);
-    }
-
-    private ApiResponse exchangeGet(String url, String authHeader) {
-        HttpHeaders headers = new HttpHeaders();
-        if (authHeader != null && !authHeader.isBlank()) {
-            headers.set("Authorization", authHeader);
-        }
-
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-        return restTemplate.exchange(url, HttpMethod.GET, entity, ApiResponse.class).getBody();
-    }
-
-    public ApiResponse getJobById(Long id, String authHeader) {
-        if (id == null) {
-            return null;
-        }
-
-        return exchangeGet(jobServiceUrl + "/jobs/public/" + id, authHeader);
+    default ApiResponse getJobById(Long id) {
+        return getJobById(id, null);
     }
 }

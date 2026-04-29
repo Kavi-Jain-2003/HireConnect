@@ -17,7 +17,8 @@ import com.hireconnect.analytics.dto.AnalyticsSummary;
 import com.hireconnect.analytics.dto.RecruiterProfileDTO;
 import com.hireconnect.analytics.security.JwtUtil;
 import com.hireconnect.analytics.service.AnalyticsService;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 @RestController
 @RequestMapping("/analytics")

@@ -21,8 +21,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import tools.jackson.databind.JavaType;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 @Service
 public class AnalyticsServiceImpl implements AnalyticsService {

@@ -1,56 +1,22 @@
 package com.hireconnect.analytics.client;
 
 import com.hireconnect.analytics.dto.ApiResponse;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 
-@Component
-public class InterviewClient {
+@FeignClient(name = "interview-service")
+public interface InterviewClient {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    @GetMapping("/interviews/application/{appId}")
+    ApiResponse getByApplication(@PathVariable("appId") Long appId,
+                                 @RequestHeader(value = "Authorization", required = false) String authHeader);
 
-    @Value("${services.interview-url}")
-    private String interviewServiceUrl;
-
-    public ApiResponse getByApplication(Long appId) {
-        if (appId == null) {
-            return null;
-        }
-
-        return restTemplate.getForObject(
-                interviewServiceUrl + "/interviews/application/" + appId,
-                ApiResponse.class);
+    default ApiResponse getByApplication(Long appId) {
+        return getByApplication(appId, null);
     }
 
-    public ApiResponse getByApplication(Long appId, String authHeader) {
-        if (appId == null) {
-            return null;
-        }
-
-        return exchangeGet(interviewServiceUrl + "/interviews/application/" + appId, authHeader);
-    }
-
-    public ApiResponse getByStatus(String status) {
-        if (status == null || status.isBlank()) {
-            return null;
-        }
-
-        return restTemplate.getForObject(
-                interviewServiceUrl + "/interviews/status/" + status,
-                ApiResponse.class);
-    }
-
-    private ApiResponse exchangeGet(String url, String authHeader) {
-        HttpHeaders headers = new HttpHeaders();
-        if (authHeader != null && !authHeader.isBlank()) {
-            headers.set("Authorization", authHeader);
-        }
-
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-        return restTemplate.exchange(url, HttpMethod.GET, entity, ApiResponse.class).getBody();
-    }
+    @GetMapping("/interviews/status/{status}")
+    ApiResponse getByStatus(@PathVariable("status") String status);
 }

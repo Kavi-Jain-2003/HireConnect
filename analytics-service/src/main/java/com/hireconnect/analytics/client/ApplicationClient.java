@@ -1,64 +1,29 @@
 package com.hireconnect.analytics.client;
 
 import com.hireconnect.analytics.dto.ApiResponse;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 
-@Component
-public class ApplicationClient {
+@FeignClient(name = "application-service")
+public interface ApplicationClient {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    @GetMapping("/applications/job/{jobId}")
+    ApiResponse getApplicationsByJob(@PathVariable("jobId") Long jobId,
+                                     @RequestHeader(value = "Authorization", required = false) String authHeader);
 
-    @Value("${services.application-url}")
-    private String applicationServiceUrl;
-
-    public ApiResponse getApplicationsByJob(Long jobId) {
-        if (jobId == null) {
-            return null;
-        }
-
-        return restTemplate.getForObject(
-                applicationServiceUrl + "/applications/job/" + jobId,
-                ApiResponse.class);
+    default ApiResponse getApplicationsByJob(Long jobId) {
+        return getApplicationsByJob(jobId, null);
     }
 
-    public ApiResponse getApplicationsByJob(Long jobId, String authHeader) {
-        if (jobId == null) {
-            return null;
-        }
-
-        return exchangeGet(applicationServiceUrl + "/applications/job/" + jobId, authHeader);
+    @GetMapping("/applications")
+    ApiResponse getAllApplications(@RequestHeader(value = "Authorization", required = false) String authHeader);
+ 
+    default ApiResponse getAllApplications() {
+        return getAllApplications(null);
     }
 
-    public ApiResponse getAllApplications() {
-        return restTemplate.getForObject(applicationServiceUrl + "/applications", ApiResponse.class);
-    }
-
-    public ApiResponse getAllApplications(String authHeader) {
-        return exchangeGet(applicationServiceUrl + "/applications", authHeader);
-    }
-
-    public ApiResponse getApplicationById(Long id) {
-        if (id == null) {
-            return null;
-        }
-
-        return restTemplate.getForObject(
-                applicationServiceUrl + "/applications/public/" + id,
-                ApiResponse.class);
-    }
-
-    private ApiResponse exchangeGet(String url, String authHeader) {
-        HttpHeaders headers = new HttpHeaders();
-        if (authHeader != null && !authHeader.isBlank()) {
-            headers.set("Authorization", authHeader);
-        }
-
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-        return restTemplate.exchange(url, HttpMethod.GET, entity, ApiResponse.class).getBody();
-    }
+    @GetMapping("/applications/public/{id}")
+    ApiResponse getApplicationById(@PathVariable("id") Long id);
 }

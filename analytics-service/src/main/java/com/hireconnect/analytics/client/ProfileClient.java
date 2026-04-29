@@ -1,46 +1,19 @@
 package com.hireconnect.analytics.client;
 
 import com.hireconnect.analytics.dto.ApiResponse;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 
-@Component
-public class ProfileClient {
+@FeignClient(name = "profile-service")
+public interface ProfileClient {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    @GetMapping("/profiles/public/recruiter/id/{id}")
+    ApiResponse getRecruiterById(@PathVariable("id") Long id,
+                                 @RequestHeader(value = "Authorization", required = false) String authHeader);
 
-    @Value("${services.profile-url}")
-    private String profileServiceUrl;
-
-    public ApiResponse getRecruiterById(Long id) {
-        if (id == null) {
-            return null;
-        }
-
-        return restTemplate.getForObject(
-                profileServiceUrl + "/profiles/public/recruiter/id/" + id,
-                ApiResponse.class);
-    }
-
-    public ApiResponse getRecruiterById(Long id, String authHeader) {
-        if (id == null) {
-            return null;
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        if (authHeader != null && !authHeader.isBlank()) {
-            headers.set("Authorization", authHeader);
-        }
-
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-        return restTemplate.exchange(
-                profileServiceUrl + "/profiles/public/recruiter/id/" + id,
-                HttpMethod.GET,
-                entity,
-                ApiResponse.class).getBody();
+    default ApiResponse getRecruiterById(Long id) {
+        return getRecruiterById(id, null);
     }
 }
