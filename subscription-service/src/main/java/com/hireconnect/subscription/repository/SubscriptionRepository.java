@@ -15,7 +15,11 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Inte
 
     Optional<Subscription> findBySubscriptionId(int subscriptionId);
 
+    Optional<Subscription> findBySubscriptionIdAndRecruiterId(int subscriptionId, int recruiterId);
+
     Subscription findFirstByRecruiterIdAndStatus(int recruiterId, String status);
+
+    List<Subscription> findByRecruiterIdAndStatus(int recruiterId, String status);
 
     int countByPlan(String plan);
 }

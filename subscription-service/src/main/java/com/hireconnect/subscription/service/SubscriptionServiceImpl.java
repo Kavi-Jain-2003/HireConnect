@@ -28,6 +28,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Override
     @Transactional
     public Subscription subscribe(int recruiterId, String plan) {
+        Subscription existingActive = getActiveSubscription(recruiterId);
+        if (existingActive != null) {
+            throw new RuntimeException("Active subscription already exists");
+        }
 
         Subscription sub = new Subscription();
         sub.setRecruiterId(recruiterId);
@@ -46,21 +50,33 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     @Transactional
-    public void cancelSubscription(int subscriptionId) {
-        Subscription sub = subscriptionRepo.findBySubscriptionId(subscriptionId)
-                .orElseThrow(() -> new RuntimeException("Subscription not found"));
+    public void cancelSubscription(int recruiterId, int subscriptionId) {
+        Subscription sub = getOwnedSubscriptionOrThrow(recruiterId, subscriptionId);
         sub.setStatus("CANCELLED");
         subscriptionRepo.save(sub);
     }
 
     @Override
     @Transactional
-    public Subscription renewSubscription(int subscriptionId) {
-        Subscription sub = subscriptionRepo.findBySubscriptionId(subscriptionId)
-                .orElseThrow(() -> new RuntimeException("Subscription not found"));
+    public Subscription renewSubscription(int recruiterId, int subscriptionId) {
+        Subscription sub = getOwnedSubscriptionOrThrow(recruiterId, subscriptionId);
+
+        if ("CANCELLED".equalsIgnoreCase(sub.getStatus())) {
+            throw new RuntimeException("Cannot renew cancelled subscription");
+        }
+
+        Subscription existingActive = getActiveSubscription(recruiterId);
+        if (existingActive != null && existingActive.getSubscriptionId() != subscriptionId) {
+            throw new RuntimeException("Active subscription already exists");
+        }
+
+        LocalDate baseDate = sub.getEndDate();
+        if (baseDate == null || baseDate.isBefore(LocalDate.now())) {
+            baseDate = LocalDate.now();
+        }
 
         sub.setStartDate(LocalDate.now());
-        sub.setEndDate(LocalDate.now().plusMonths(1));
+        sub.setEndDate(baseDate.plusMonths(1));
         sub.setStatus("ACTIVE");
 
         Subscription saved = subscriptionRepo.save(sub);
@@ -89,7 +105,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
-    public List<Invoice> getInvoices(int subscriptionId) {
+    public List<Invoice> getInvoices(int recruiterId, int subscriptionId) {
+        getOwnedSubscriptionOrThrow(recruiterId, subscriptionId);
         return invoiceRepo.findBySubscriptionId(subscriptionId);
     }
 
@@ -100,7 +117,23 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public Subscription getActiveSubscription(int recruiterId) {
-        return subscriptionRepo.findFirstByRecruiterIdAndStatus(recruiterId, "ACTIVE");
+        Subscription sub = subscriptionRepo.findFirstByRecruiterIdAndStatus(recruiterId, "ACTIVE");
+        if (sub == null) {
+            return null;
+        }
+
+        if (sub.getEndDate() != null && sub.getEndDate().isBefore(LocalDate.now())) {
+            sub.setStatus("EXPIRED");
+            subscriptionRepo.save(sub);
+            return null;
+        }
+
+        return sub;
+    }
+
+    @Override
+    public List<Subscription> getSubscriptionsByRecruiterIdAndStatus(int recruiterId, String status) {
+        return subscriptionRepo.findByRecruiterIdAndStatus(recruiterId, status == null ? "ACTIVE" : status.trim().toUpperCase());
     }
 
     @Override
@@ -112,5 +145,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if ("PROFESSIONAL".equalsIgnoreCase(plan)) return 999;
         if ("ENTERPRISE".equalsIgnoreCase(plan)) return 1999;
         return 0; // FREE
+    }
+
+    private Subscription getOwnedSubscriptionOrThrow(int recruiterId, int subscriptionId) {
+        return subscriptionRepo.findBySubscriptionIdAndRecruiterId(subscriptionId, recruiterId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found"));
     }
 }

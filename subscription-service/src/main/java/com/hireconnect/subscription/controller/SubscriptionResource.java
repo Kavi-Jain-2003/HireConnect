@@ -33,35 +33,41 @@ public class SubscriptionResource {
 
 
     @PostMapping("/cancel/{id}")
-    public ResponseEntity<ApiResponse> cancel(@PathVariable int id) {
-        service.cancelSubscription(id);
+    public ResponseEntity<ApiResponse> cancel(HttpServletRequest request, @PathVariable int id) {
+        int recruiterId = getRecruiterId(request);
+        service.cancelSubscription(recruiterId, id);
         return ResponseEntity.ok(ApiResponse.of("Subscription cancelled", null));
     }
 
     @PostMapping("/renew/{id}")
-    public ResponseEntity<ApiResponse> renew(@PathVariable int id) {
-        Subscription saved = service.renewSubscription(id);
+    public ResponseEntity<ApiResponse> renew(HttpServletRequest request, @PathVariable int id) {
+        int recruiterId = getRecruiterId(request);
+        Subscription saved = service.renewSubscription(recruiterId, id);
         return ResponseEntity.ok(ApiResponse.of("Subscription renewed", saved));
     }
 
     @GetMapping("/{id}/invoices")
-    public ResponseEntity<ApiResponse> getInvoices(@PathVariable int id) {
-        return ResponseEntity.ok(ApiResponse.of("Invoices fetched successfully", service.getInvoices(id)));
+    public ResponseEntity<ApiResponse> getInvoices(HttpServletRequest request, @PathVariable int id) {
+        int recruiterId = getRecruiterId(request);
+        return ResponseEntity.ok(ApiResponse.of("Invoices fetched successfully", service.getInvoices(recruiterId, id)));
     }
 
-    @GetMapping("/recruiter/{recruiterId}")
-    public ResponseEntity<ApiResponse> getByRecruiter(@PathVariable int recruiterId) {
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse> getMySubscriptions(HttpServletRequest request) {
+        int recruiterId = getRecruiterId(request);
         return ResponseEntity.ok(ApiResponse.of("Subscriptions fetched successfully", service.getSubscriptionsByRecruiterId(recruiterId)));
     }
 
-    @GetMapping("/recruiter/{recruiterId}/active")
-    public ResponseEntity<ApiResponse> getActive(@PathVariable int recruiterId) {
+    @GetMapping("/my/active")
+    public ResponseEntity<ApiResponse> getActive(HttpServletRequest request) {
+        int recruiterId = getRecruiterId(request);
         return ResponseEntity.ok(ApiResponse.of("Active subscription fetched successfully", service.getActiveSubscription(recruiterId)));
     }
 
-    @GetMapping("/status/{status}")
-    public ResponseEntity<ApiResponse> getByStatus(@PathVariable String status) {
-        return ResponseEntity.ok(ApiResponse.of("Subscriptions fetched successfully", service.getSubscriptionsByStatus(status)));
+    @GetMapping("/my/status/{status}")
+    public ResponseEntity<ApiResponse> getByStatus(HttpServletRequest request, @PathVariable String status) {
+        int recruiterId = getRecruiterId(request);
+        return ResponseEntity.ok(ApiResponse.of("Subscriptions fetched successfully", service.getSubscriptionsByRecruiterIdAndStatus(recruiterId, status)));
     }
 
     private int getRecruiterId(HttpServletRequest request) {
