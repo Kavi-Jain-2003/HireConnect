@@ -1,36 +1,43 @@
 package com.hireconnect.job.service;
 
 import java.time.LocalDateTime;
-
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
+import com.hireconnect.job.client.NotificationClient;
+import com.hireconnect.job.client.ProfileClient;
+import com.hireconnect.job.dto.ApiResponse;
 import org.springframework.stereotype.Service;
 
 import com.hireconnect.job.dto.JobRequest;
 import com.hireconnect.job.dto.JobWithRecruiterDTO;
 import com.hireconnect.job.entity.Job;
 import com.hireconnect.job.repository.JobRepository;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import java.util.*;
+
 @Service
 public class JobServiceImpl implements JobService {
 
     private final JobRepository jobRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final ProfileClient profileClient;
+    private final NotificationClient notificationClient;
 
-    public JobServiceImpl(JobRepository jobRepository) {
+    public JobServiceImpl(JobRepository jobRepository, ProfileClient profileClient, NotificationClient notificationClient) {
         this.jobRepository = jobRepository;
+        this.profileClient = profileClient;
+        this.notificationClient = notificationClient;
     }
 
     private void notifyCandidates(Job job) {
         try {
-            List<Map> candidates = restTemplate.getForObject("http://localhost:8083/profiles/public/candidates", List.class);
+            ApiResponse candidateResponse = profileClient.getAllCandidates();
+            List<Map<String, Object>> candidates = toList(candidateResponse == null ? null : candidateResponse.getData());
             if (candidates == null || candidates.isEmpty()) {
                 return;
             }
 
-            for (Map candidate : candidates) {
+            for (Map<String, Object> candidate : candidates) {
                 Object candidateId = candidate.get("profileId");
                 Object email = candidate.get("email");
                 if (candidateId == null || email == null) {
@@ -45,7 +52,7 @@ public class JobServiceImpl implements JobService {
                 payload.put("message", "New job posted: \"" + job.getTitle() + "\" in " + job.getLocation() + ".");
 
                 try {
-                    restTemplate.postForObject("http://localhost:8086/notifications/public/dispatch", payload, Map.class);
+                    notificationClient.dispatch(payload);
                 } catch (Exception ignored) {
                     // Keep job creation lightweight and resilient if notifications are temporarily unavailable.
                 }
@@ -184,14 +191,15 @@ public class JobServiceImpl implements JobService {
         List<Job> jobs = jobRepository.findAll();
         List<JobWithRecruiterDTO> result = new ArrayList<>();
 
-        RestTemplate restTemplate = new RestTemplate();
-
-        String url = "http://localhost:8083/profiles/public/recruiters";
-        List<Map> recruiters = restTemplate.getForObject(url, List.class);
+        ApiResponse recruiterResponse = profileClient.getAllRecruiters();
+        List<Map<String, Object>> recruiters = toList(recruiterResponse == null ? null : recruiterResponse.getData());
+        if (recruiters == null || recruiters.isEmpty()) {
+            return result;
+        }
 
         for (Job job : jobs) {
 
-            for (Map r : recruiters) {
+            for (Map<String, Object> r : recruiters) {
 
                 if (r.get("email").equals(job.getPostedBy())) {
 
@@ -212,5 +220,13 @@ public class JobServiceImpl implements JobService {
         }
 
         return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> toList(Object data) {
+        if (data == null) {
+            return List.of();
+        }
+        return (List<Map<String, Object>>) data;
     }
 }
