@@ -56,6 +56,15 @@ public class ApplicationController {
         return ResponseEntity.ok(ApiResponse.of(response.getMessage(), response.getApplicationId()));
     }
 
+    @PutMapping("/{id}/final-status")
+    public ResponseEntity<ApiResponse> finalizeStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateStatusRequest request) {
+
+        ApplicationResponse response = service.finalizeStatus(id, request);
+        return ResponseEntity.ok(ApiResponse.of(response.getMessage(), response.getApplicationId()));
+    }
+
     // ---------------- WITHDRAW ----------------
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> withdraw(@PathVariable Long id) {

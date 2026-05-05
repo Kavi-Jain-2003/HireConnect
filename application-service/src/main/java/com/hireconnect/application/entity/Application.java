@@ -10,81 +10,58 @@ import jakarta.persistence.*;
 @Table(name = "applications")
 public class Application {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long applicationId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long applicationId;
 
-	private Long jobId;
+    private Long jobId;
 
-	private Long candidateId;
+    private Long candidateId;
 
-	private LocalDateTime appliedAt;
+    private LocalDateTime appliedAt;
 
-	@Enumerated(EnumType.STRING)
-	private ApplicationStatus status;
+    @Enumerated(EnumType.STRING)
+    private ApplicationStatus status;
 
-	@Column(length = 2000)
-	private String coverLetter;
+    @Column(length = 2000)
+    private String coverLetter;
 
-	private String resumeUrl;
+    private String resumeUrl;
 
-	public Application() {
-	}
+    public Application() {}
 
-	public Long getApplicationId() {
-		return applicationId;
-	}
+    // Fix 9: set defaults at the DB/JPA layer so service code doesn't have to
+    // remember to set them manually.
+    @PrePersist
+    public void onCreate() {
+        if (this.appliedAt == null) {
+            this.appliedAt = LocalDateTime.now();
+        }
+        if (this.status == null) {
+            this.status = ApplicationStatus.APPLIED;
+        }
+    }
 
-	public void setApplicationId(Long applicationId) {
-		this.applicationId = applicationId;
-	}
+    // Getters & Setters
 
-	public Long getJobId() {
-		return jobId;
-	}
+    public Long getApplicationId() { return applicationId; }
+    public void setApplicationId(Long applicationId) { this.applicationId = applicationId; }
 
-	public void setJobId(Long jobId) {
-		this.jobId = jobId;
-	}
+    public Long getJobId() { return jobId; }
+    public void setJobId(Long jobId) { this.jobId = jobId; }
 
-	public Long getCandidateId() {
-		return candidateId;
-	}
+    public Long getCandidateId() { return candidateId; }
+    public void setCandidateId(Long candidateId) { this.candidateId = candidateId; }
 
-	public void setCandidateId(Long candidateId) {
-		this.candidateId = candidateId;
-	}
+    public LocalDateTime getAppliedAt() { return appliedAt; }
+    public void setAppliedAt(LocalDateTime appliedAt) { this.appliedAt = appliedAt; }
 
-	public LocalDateTime getAppliedAt() {
-		return appliedAt;
-	}
+    public ApplicationStatus getStatus() { return status; }
+    public void setStatus(ApplicationStatus status) { this.status = status; }
 
-	public void setAppliedAt(LocalDateTime appliedAt) {
-		this.appliedAt = appliedAt;
-	}
+    public String getCoverLetter() { return coverLetter; }
+    public void setCoverLetter(String coverLetter) { this.coverLetter = coverLetter; }
 
-	public ApplicationStatus getStatus() {
-		return status;
-	}
-
-	public void setStatus(ApplicationStatus status) {
-		this.status = status;
-	}
-
-	public String getCoverLetter() {
-		return coverLetter;
-	}
-
-	public void setCoverLetter(String coverLetter) {
-		this.coverLetter = coverLetter;
-	}
-
-	public String getResumeUrl() {
-		return resumeUrl;
-	}
-
-	public void setResumeUrl(String resumeUrl) {
-		this.resumeUrl = resumeUrl;
-	}
-
+    public String getResumeUrl() { return resumeUrl; }
+    public void setResumeUrl(String resumeUrl) { this.resumeUrl = resumeUrl; }
 }

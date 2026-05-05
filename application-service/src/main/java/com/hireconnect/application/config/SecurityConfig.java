@@ -1,6 +1,7 @@
 package com.hireconnect.application.config;
 
 import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.*;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -21,8 +22,11 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/applications/public/**").permitAll()
-            .requestMatchers("/applications").hasRole("CANDIDATE")
-            .requestMatchers("/applications/*/status").hasRole("RECRUITER")
+            .requestMatchers(HttpMethod.GET, "/applications/job/**").hasAnyRole("RECRUITER", "ADMIN")
+            .requestMatchers(HttpMethod.GET, "/applications/candidate/**").hasRole("CANDIDATE")
+            .requestMatchers(HttpMethod.GET, "/applications").hasAnyRole("RECRUITER", "ADMIN")
+            .requestMatchers(HttpMethod.PUT, "/applications/*/status").hasAnyRole("RECRUITER", "ADMIN")
+            .requestMatchers(HttpMethod.POST, "/applications").hasRole("CANDIDATE")
             .requestMatchers("/applications/**").authenticated()
             .anyRequest().permitAll()
         )

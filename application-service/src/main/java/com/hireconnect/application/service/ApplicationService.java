@@ -11,6 +11,8 @@ public interface ApplicationService {
 
     ApplicationResponse submitApplication(ApplicationRequest request);
 
+    // candidateId is the profile ID being requested; the impl verifies
+    // the logged-in user owns that profile before returning data.
     List<Application> getByCandidate(Long candidateId);
 
     List<Application> getByJob(Long jobId);
@@ -19,7 +21,9 @@ public interface ApplicationService {
 
     ApplicationResponse updateStatus(Long applicationId, UpdateStatusRequest request);
 
-    ApplicationResponse withdrawApplication(Long applicationId);
-    Long countByJob(Long jobId);
+    ApplicationResponse finalizeStatus(Long applicationId, UpdateStatusRequest request);
 
+    ApplicationResponse withdrawApplication(Long applicationId);
+
+    Long countByJob(Long jobId);
 }
