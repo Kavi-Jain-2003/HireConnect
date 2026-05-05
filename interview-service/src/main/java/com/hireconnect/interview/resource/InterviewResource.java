@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/interviews")
@@ -22,59 +23,69 @@ public class InterviewResource {
     public ResponseEntity<ApiResponse> schedule(@RequestBody Interview interview,
                                                 HttpServletRequest request) {
         String role = (String) request.getAttribute("role");
-
         if (!"RECRUITER".equals(role)) {
             return ResponseEntity.status(403)
                     .body(ApiResponse.of("Access denied: only Recruiter can schedule interviews", null));
         }
-
         return ResponseEntity.ok(ApiResponse.of("Interview scheduled successfully", service.scheduleInterview(interview)));
     }
 
     @PutMapping("/{id}/confirm")
-    public ResponseEntity<ApiResponse> confirm(@PathVariable int id,
+    public ResponseEntity<ApiResponse> confirm(@PathVariable Long id,   // was int
                                                HttpServletRequest request) {
         String role = (String) request.getAttribute("role");
-
         if (!"CANDIDATE".equals(role)) {
             return ResponseEntity.status(403)
                     .body(ApiResponse.of("Access denied: only Candidate can confirm interview", null));
         }
-
         return ResponseEntity.ok(ApiResponse.of("Interview confirmed successfully", service.confirmInterview(id)));
     }
 
     @PutMapping("/{id}/reschedule")
-    public ResponseEntity<ApiResponse> reschedule(@PathVariable int id,
-                                                  @RequestParam String time,
+    public ResponseEntity<ApiResponse> reschedule(@PathVariable Long id,    // was int
+                                                  @RequestParam(required = false) String time,
+                                                  @RequestBody(required = false) Map<String, Object> body,
                                                   HttpServletRequest request) {
         String role = (String) request.getAttribute("role");
-
         if (!"CANDIDATE".equals(role)) {
             return ResponseEntity.status(403)
                     .body(ApiResponse.of("Access denied: only Candidate can reschedule", null));
         }
+        String rawTime = time;
+        if ((rawTime == null || rawTime.isBlank()) && body != null) {
+            Object scheduledAt = body.get("scheduledAt");
+            if (scheduledAt == null) {
+                scheduledAt = body.get("time");
+            }
+            if (scheduledAt == null) {
+                scheduledAt = body.get("newTime");
+            }
+            rawTime = scheduledAt == null ? null : scheduledAt.toString();
+        }
 
-        LocalDateTime newTime = LocalDateTime.parse(time);
+        if (rawTime == null || rawTime.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.of("Missing scheduled time", null));
+        }
+
+        LocalDateTime newTime = LocalDateTime.parse(rawTime);
         return ResponseEntity.ok(ApiResponse.of("Interview rescheduled successfully", service.rescheduleInterview(id, newTime)));
     }
 
     @PutMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse> cancel(@PathVariable int id,
+    public ResponseEntity<ApiResponse> cancel(@PathVariable Long id,    // was int
                                               HttpServletRequest request) {
         String role = (String) request.getAttribute("role");
-
         if (!"RECRUITER".equals(role)) {
             return ResponseEntity.status(403)
                     .body(ApiResponse.of("Access denied: only Recruiter can cancel", null));
         }
-
         service.cancelInterview(id);
         return ResponseEntity.ok(ApiResponse.of("Interview cancelled successfully", null));
     }
 
     @GetMapping("/application/{appId}")
-    public ResponseEntity<ApiResponse> getByApplication(@PathVariable int appId) {
+    public ResponseEntity<ApiResponse> getByApplication(@PathVariable Long appId) {    // was int
         return ResponseEntity.ok(ApiResponse.of("Interviews fetched successfully", service.getByApplication(appId)));
     }
 

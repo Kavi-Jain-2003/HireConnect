@@ -9,13 +9,13 @@ public interface InterviewService {
 
     Interview scheduleInterview(Interview interview);
 
-    Interview confirmInterview(int interviewId);
+    Interview confirmInterview(Long interviewId);       // was int
 
-    Interview rescheduleInterview(int interviewId, LocalDateTime newTime);
+    Interview rescheduleInterview(Long interviewId, LocalDateTime newTime); // was int
 
-    void cancelInterview(int interviewId);
+    void cancelInterview(Long interviewId);             // was int
 
-    List<Interview> getByApplication(int applicationId);
+    List<Interview> getByApplication(Long applicationId); // was int
 
     List<Interview> getByStatus(String status);
 }

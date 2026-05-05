@@ -8,19 +8,19 @@ public class Interview {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int interviewId;
+    private Long interviewId;   // was int
 
-    private int applicationId;
+    private Long applicationId; // was int
     private LocalDateTime scheduledAt;
-    private String mode; // Online / In-Person
+    private String mode;        // Online / In-Person
     private String meetLink;
     private String location;
-    private String status; // SCHEDULED, CONFIRMED, CANCELLED
+    private String status;      // SCHEDULED, CONFIRMED, RESCHEDULED, CANCELLED
     private String notes;
 
     public Interview() {}
 
-    public Interview(int applicationId, LocalDateTime scheduledAt, String mode,
+    public Interview(Long applicationId, LocalDateTime scheduledAt, String mode,
                      String meetLink, String location, String status, String notes) {
         this.applicationId = applicationId;
         this.scheduledAt = scheduledAt;
@@ -33,11 +33,11 @@ public class Interview {
 
     // Getters & Setters
 
-    public int getInterviewId() { return interviewId; }
-    public void setInterviewId(int interviewId) { this.interviewId = interviewId; }
+    public Long getInterviewId() { return interviewId; }
+    public void setInterviewId(Long interviewId) { this.interviewId = interviewId; }
 
-    public int getApplicationId() { return applicationId; }
-    public void setApplicationId(int applicationId) { this.applicationId = applicationId; }
+    public Long getApplicationId() { return applicationId; }
+    public void setApplicationId(Long applicationId) { this.applicationId = applicationId; }
 
     public LocalDateTime getScheduledAt() { return scheduledAt; }
     public void setScheduledAt(LocalDateTime scheduledAt) { this.scheduledAt = scheduledAt; }

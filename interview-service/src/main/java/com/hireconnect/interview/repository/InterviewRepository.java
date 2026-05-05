@@ -6,13 +6,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface InterviewRepository extends JpaRepository<Interview, Integer> {
+public interface InterviewRepository extends JpaRepository<Interview, Long> { // was Integer
 
-    List<Interview> findByApplicationId(int applicationId);
+    List<Interview> findByApplicationId(Long applicationId);    // was int
+    java.util.Optional<Interview> findFirstByApplicationIdOrderByInterviewIdDesc(Long applicationId);
 
     List<Interview> findByStatus(String status);
 
     List<Interview> findByScheduledAtBetween(LocalDateTime start, LocalDateTime end);
 
-    void deleteByInterviewId(int interviewId);
+    void deleteByInterviewId(Long interviewId);                 // was int
 }
