@@ -79,6 +79,7 @@ public class JwtFilter implements GlobalFilter, Ordered {
         return path.startsWith("/auth/")
                 || path.startsWith("/jobs/public/")
                 || path.equals("/jobs/public")
+                || path.matches("/jobs/\\d+")
                 || path.startsWith("/profiles/public/")
                 || path.startsWith("/applications/public/")
                 || path.startsWith("/notifications/public/")
