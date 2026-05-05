@@ -1,5 +1,7 @@
 package com.hireconnect.job.dto;
 
+import java.util.List;
+
 public class JobRequest {
 
     private String title;
@@ -8,14 +10,15 @@ public class JobRequest {
     private String location;
     private Double salaryMin;
     private Double salaryMax;
-    private String skills;
+    private List<String> skills;   // Changed from String to List<String>
     private Integer experienceRequired;
     private String description;
     private String company;
 
     public JobRequest() {}
 
-    // getters & setters
+    // Getters & Setters
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
@@ -34,8 +37,8 @@ public class JobRequest {
     public Double getSalaryMax() { return salaryMax; }
     public void setSalaryMax(Double salaryMax) { this.salaryMax = salaryMax; }
 
-    public String getSkills() { return skills; }
-    public void setSkills(String skills) { this.skills = skills; }
+    public List<String> getSkills() { return skills; }
+    public void setSkills(List<String> skills) { this.skills = skills; }
 
     public Integer getExperienceRequired() { return experienceRequired; }
     public void setExperienceRequired(Integer experienceRequired) { this.experienceRequired = experienceRequired; }

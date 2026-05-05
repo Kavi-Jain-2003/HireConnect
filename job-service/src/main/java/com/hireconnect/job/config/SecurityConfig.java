@@ -28,36 +28,34 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
 
             .authorizeHttpRequests(auth -> auth
-                // ✅ PUBLIC APIs (NO TOKEN REQUIRED)
+                // PUBLIC — no token required
                 .requestMatchers("/jobs/public/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/jobs/**").permitAll()   // ← covers /jobs/3, /jobs/2 etc.
 
-                // 🔐 ONLY RECRUITER CAN CREATE/UPDATE/DELETE JOB
-                .requestMatchers(HttpMethod.POST, "/jobs").hasRole("RECRUITER")
-                .requestMatchers(HttpMethod.PUT, "/jobs/**").hasRole("RECRUITER")
+                // RECRUITER ONLY — create / update / delete
+                .requestMatchers(HttpMethod.POST,   "/jobs").hasRole("RECRUITER")
+                .requestMatchers(HttpMethod.PUT,    "/jobs/**").hasRole("RECRUITER")
                 .requestMatchers(HttpMethod.DELETE, "/jobs/**").hasRole("RECRUITER")
 
-                // 🔐 ALL OTHER APIs REQUIRE LOGIN
                 .anyRequest().authenticated()
             )
 
-            // ❌ No session (JWT based)
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .exceptionHandling(ex -> ex
-            	    .authenticationEntryPoint((request, response, authException) -> {
-            	        response.setContentType("application/json");
-            	        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            	        response.getWriter().write("{\"message\": \"Please login first\"}");
-            	    })
-            	    .accessDeniedHandler((request, response, ex2) -> {
-            	        response.setContentType("application/json");
-            	        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            	        response.getWriter().write("{\"message\": \"Only recruiter can perform this action\"}");
-            	    })
-    )
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setContentType("application/json");
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("{\"message\": \"Please login first\"}");
+                })
+                .accessDeniedHandler((request, response, ex2) -> {
+                    response.setContentType("application/json");
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.getWriter().write("{\"message\": \"Only recruiter can perform this action\"}");
+                })
+            )
 
-            // 🔥 JWT FILTER
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

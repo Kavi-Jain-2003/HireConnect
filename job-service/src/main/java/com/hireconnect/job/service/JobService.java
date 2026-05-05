@@ -14,7 +14,8 @@ public interface JobService {
 
     Job getJobById(Long id);
 
-    List<Job> searchJobs(String title, String location, String category, Double minSalary, Double maxSalary, Integer experience);
+    List<Job> searchJobs(String title, String location, String category,
+                         Double minSalary, Double maxSalary, Integer experience);
 
     String updateJob(Long id, JobRequest request, String userEmail);
 
@@ -26,5 +27,11 @@ public interface JobService {
 
     List<Job> getJobsByStatus(String status);
 
-	List<JobWithRecruiterDTO> getAllJobsWithRecruiter();
+    List<JobWithRecruiterDTO> getAllJobsWithRecruiter();
+
+    // Fix 7: increments viewCount by 1 and returns updated job
+    Job incrementViewCount(Long id);
+
+    // Admin can delete any job without ownership check
+    void adminDeleteJob(Long id);
 }

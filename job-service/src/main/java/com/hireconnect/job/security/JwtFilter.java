@@ -63,8 +63,9 @@ public class JwtFilter extends OncePerRequestFilter {
                 // 🔥 Set authentication
                 SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                // 🔥 ALSO store email for controller usage
+                // 🔥 ALSO store email and role for controller usage
                 request.setAttribute("email", email);
+                request.setAttribute("role", role);
             }
 
         } catch (Exception e) {

@@ -6,10 +6,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.hireconnect.job.client.AuthClient;
 import com.hireconnect.job.client.NotificationClient;
 import com.hireconnect.job.client.ProfileClient;
 import com.hireconnect.job.dto.ApiResponse;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.hireconnect.job.dto.JobRequest;
 import com.hireconnect.job.dto.JobWithRecruiterDTO;
@@ -21,12 +23,27 @@ public class JobServiceImpl implements JobService {
 
     private final JobRepository jobRepository;
     private final ProfileClient profileClient;
+    private final AuthClient authClient;
     private final NotificationClient notificationClient;
 
-    public JobServiceImpl(JobRepository jobRepository, ProfileClient profileClient, NotificationClient notificationClient) {
+    public JobServiceImpl(JobRepository jobRepository, ProfileClient profileClient, AuthClient authClient, NotificationClient notificationClient) {
         this.jobRepository = jobRepository;
         this.profileClient = profileClient;
+        this.authClient = authClient;
         this.notificationClient = notificationClient;
+    }
+
+    private Long resolveAuthUserId(String email) {
+        try {
+            ApiResponse response = authClient.getUserByEmail(email);
+            Map<String, Object> user = toMap(response == null ? null : response.getData());
+            if (user == null || user.get("userId") == null) {
+                return null;
+            }
+            return Long.valueOf(user.get("userId").toString());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void notifyCandidates(Job job) {
@@ -38,14 +55,18 @@ public class JobServiceImpl implements JobService {
             }
 
             for (Map<String, Object> candidate : candidates) {
-                Object candidateId = candidate.get("profileId");
                 Object email = candidate.get("email");
-                if (candidateId == null || email == null) {
+                if (email == null) {
+                    continue;
+                }
+
+                Long recipientUserId = resolveAuthUserId(email.toString());
+                if (recipientUserId == null) {
                     continue;
                 }
 
                 Map<String, Object> payload = new HashMap<>();
-                payload.put("userId", Long.valueOf(candidateId.toString()));
+                payload.put("userId", recipientUserId);
                 payload.put("type", "JOB_ALERT");
                 payload.put("subject", "New job alert");
                 payload.put("email", email.toString());
@@ -228,5 +249,33 @@ public class JobServiceImpl implements JobService {
             return List.of();
         }
         return (List<Map<String, Object>>) data;
+    }
+    
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> toMap(Object data) {
+        if (data == null) {
+            return null;
+        }
+        return (Map<String, Object>) data;
+    }
+    // -----------------------------------------------------------------------
+// PATCH — add this method to JobServiceImpl.java
+// Also add the method signature to JobService interface (see JobService.java)
+// -----------------------------------------------------------------------
+
+    @Override
+    @Transactional
+    public Job incrementViewCount(Long id) {
+        Job job = getJobById(id);
+        int current = job.getViewCount() == null ? 0 : job.getViewCount();
+        job.setViewCount(current + 1);
+        return jobRepository.save(job);
+    }
+
+    // Admin deletes any job — no ownership check needed
+    @Override
+    public void adminDeleteJob(Long id) {
+        Job job = getJobById(id); // throws if not found
+        jobRepository.delete(job);
     }
 }
