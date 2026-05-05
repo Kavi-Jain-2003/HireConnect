@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/subscriptions")
@@ -22,15 +23,13 @@ public class SubscriptionResource {
         this.service = service;
     }
 
+    // Existing endpoints (unchanged)
     @PostMapping("/subscribe")
-    public ResponseEntity<ApiResponse> subscribe(HttpServletRequest request,
-                                  @RequestParam String plan) {
-
+    public ResponseEntity<ApiResponse> subscribe(HttpServletRequest request, @RequestParam String plan) {
         int recruiterId = getRecruiterId(request);
         Subscription saved = service.subscribe(recruiterId, plan);
         return ResponseEntity.ok(ApiResponse.of("Subscription created successfully", saved));
     }
-
 
     @PostMapping("/cancel/{id}")
     public ResponseEntity<ApiResponse> cancel(HttpServletRequest request, @PathVariable int id) {
@@ -69,6 +68,34 @@ public class SubscriptionResource {
         int recruiterId = getRecruiterId(request);
         return ResponseEntity.ok(ApiResponse.of("Subscriptions fetched successfully", service.getSubscriptionsByRecruiterIdAndStatus(recruiterId, status)));
     }
+
+    // ── NEW: Razorpay endpoints ──────────────────────────────────────────────
+
+    @PostMapping("/create-order")
+    public ResponseEntity<ApiResponse> createOrder(HttpServletRequest request,
+                                                    @RequestParam String plan) {
+        int recruiterId = getRecruiterId(request);
+        try {
+            Map<String, Object> order = service.createRazorpayOrder(recruiterId, plan);
+            return ResponseEntity.ok(ApiResponse.of("Order created", order));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.of(e.getMessage(), null));
+        }
+    }
+
+    @PostMapping("/verify-payment")
+    public ResponseEntity<ApiResponse> verifyPayment(HttpServletRequest request,
+                                                      @RequestBody Map<String, String> payload) {
+        int recruiterId = getRecruiterId(request);
+        try {
+            Subscription sub = service.verifyAndActivate(recruiterId, payload);
+            return ResponseEntity.ok(ApiResponse.of("Payment verified! Subscription activated.", sub));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.of(e.getMessage(), null));
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
 
     private int getRecruiterId(HttpServletRequest request) {
         Object recruiterId = request.getAttribute("recruiterId");
