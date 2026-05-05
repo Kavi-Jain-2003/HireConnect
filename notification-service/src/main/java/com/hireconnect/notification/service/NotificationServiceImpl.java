@@ -122,6 +122,15 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public Notification dispatchNotification(Long userId, String type, String message, String email, String subject) {
+        if (userId != null && type != null && message != null) {
+            Notification existing = repo
+                    .findFirstByUserIdAndTypeAndMessageOrderByCreatedAtDesc(userId, type.trim().toUpperCase(Locale.ROOT), message)
+                    .orElse(null);
+            if (existing != null) {
+                return existing;
+            }
+        }
+
         Notification notification = new Notification();
         notification.setUserId(userId);
         notification.setType(type);

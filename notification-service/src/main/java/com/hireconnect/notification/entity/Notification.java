@@ -1,5 +1,7 @@
 package com.hireconnect.notification.entity;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -53,13 +55,16 @@ public class Notification {
 		this.message = message;
 	}
 
-	public boolean isRead() {
-		return isRead;
-	}
+    @JsonProperty("isRead")
+    public boolean isRead() {
+        return isRead;
+    }
 
-	public void setRead(boolean isRead) {
-		this.isRead = isRead;
-	}
+    @JsonProperty("isRead")
+    @JsonAlias("read")
+    public void setRead(boolean isRead) {
+        this.isRead = isRead;
+    }
 
 	public LocalDateTime getCreatedAt() {
 		return createdAt;
