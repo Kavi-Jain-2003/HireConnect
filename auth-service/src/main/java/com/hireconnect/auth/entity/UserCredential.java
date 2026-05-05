@@ -28,6 +28,10 @@ public class UserCredential {
 
     private LocalDateTime createdAt;
 
+    // Used by Admin to block a user from logging in
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean suspended = false;
+
     // Constructors
     public UserCredential() {
     }
@@ -84,5 +88,13 @@ public class UserCredential {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isSuspended() {
+        return suspended;
+    }
+
+    public void setSuspended(boolean suspended) {
+        this.suspended = suspended;
     }
 }

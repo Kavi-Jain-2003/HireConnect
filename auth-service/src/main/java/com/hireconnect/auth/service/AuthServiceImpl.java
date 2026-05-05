@@ -8,8 +8,7 @@ import com.hireconnect.auth.entity.AuthProvider;
 import com.hireconnect.auth.entity.UserCredential;
 import com.hireconnect.auth.repository.AuthRepository;
 import com.hireconnect.auth.security.JwtUtil;
-import com.hireconnect.auth.service.AuthService;
-
+import com.hireconnect.auth.entity.Role;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +33,10 @@ public class AuthServiceImpl implements AuthService {
 		// Step 1: check if email already exists
 		if (authRepository.existsByEmail(request.getEmail())) {
 			throw new RuntimeException("Email already registered");
+		}
+		if(request.getRole()==Role.ADMIN)
+		{
+			throw new RuntimeException("Cannot register as admin");
 		}
 
 		// Step 2: create entity
@@ -73,7 +76,12 @@ public class AuthServiceImpl implements AuthService {
 				.orElseThrow(() -> new RuntimeException("User not found"));
 
 		if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-			throw new RuntimeException("Invalid email or passwords");
+			throw new RuntimeException("Invalid email or password");
+		}
+
+		// Admin can suspend accounts — suspended users cannot login
+		if (user.isSuspended()) {
+			throw new RuntimeException("Your account has been suspended. Please contact admin.");
 		}
 
 		String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getUserId());
@@ -98,7 +106,7 @@ public class AuthServiceImpl implements AuthService {
 		}
 	}
 
-	// ✅ REFRESH TOKEN
+	//  REFRESH TOKEN
 	@Override
 	public LoginResponse refreshToken(String token) {
 

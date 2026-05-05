@@ -45,6 +45,7 @@ public class JwtFilter extends OncePerRequestFilter {
 		try {
 			// verifying token with signature
 			String email = jwtUtil.extractEmail(token);
+			String role = jwtUtil.extractRole(token);
 
 			// prevents duplicate authentication
 			if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -58,6 +59,10 @@ public class JwtFilter extends OncePerRequestFilter {
 				// user is logged in
 				SecurityContextHolder.getContext().setAuthentication(authToken);
 			}
+
+			// Make email and role available to controllers via request attributes
+			request.setAttribute("email", email);
+			request.setAttribute("role", role);
 
 		} catch (JwtException e) {
 			SecurityContextHolder.clearContext(); // 🔥 clear invalid auth 401

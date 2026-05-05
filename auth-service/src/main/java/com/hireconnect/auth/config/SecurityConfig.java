@@ -38,6 +38,7 @@ private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/auth/**").permitAll()
+            .requestMatchers("/admin/**").permitAll()  // role-check done inside AdminController
             .anyRequest().authenticated()
         )
 

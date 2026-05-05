@@ -14,6 +14,8 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 
 @Component
@@ -37,29 +39,37 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         String email = user.getAttribute("email");
 
-        // 🔥 If email is null (GitHub issue)
+        // GitHub sometimes doesn't expose email — fall back to login@github.com
         if (email == null) {
             email = user.getAttribute("login") + "@github.com";
         }
 
-        // ✅ Save user if not exists
+        // Save user if not exists
         UserCredential existingUser = authRepository.findByEmail(email).orElse(null);
 
         if (existingUser == null) {
             UserCredential newUser = new UserCredential();
             newUser.setEmail(email);
             newUser.setPasswordHash("OAUTH_USER");
-            newUser.setRole(Role.CANDIDATE); // default
+            newUser.setRole(Role.CANDIDATE);
             newUser.setProvider(AuthProvider.GITHUB);
             newUser.setCreatedAt(LocalDateTime.now());
-
             existingUser = authRepository.save(newUser);
         }
 
-        // 🔐 Generate JWT
-        String token = jwtUtil.generateToken(email, "CANDIDATE", existingUser.getUserId());
+        // Generate JWT with correct role
+        String role = existingUser.getRole().name();
+        String token = jwtUtil.generateToken(email, role, existingUser.getUserId());
 
-        // 👉 Return token in response
-        response.getWriter().write("JWT Token: " + token);
+        // ✅ Redirect to /github-callback (NOT /auth/login) so Angular proxy
+        //    does NOT intercept it and forward it to the backend.
+        //    GithubCallbackComponent reads ?token=&email=&role= and stores them.
+        String encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8);
+        String redirectUrl = "http://localhost:4200/auth/github/callback"
+                + "?token=" + token
+                + "&email=" + encodedEmail
+                + "&role=" + role;
+
+        response.sendRedirect(redirectUrl);
     }
 }
