@@ -24,8 +24,10 @@ public class ProfileResource {
                                HttpServletRequest request) {
 
         String email = (String) request.getAttribute("email");
+        Long userId = (Long) request.getAttribute("userId");
 
         profile.setEmail(email);
+        profile.setUserId(userId);
 
         profileService.addCandidateProfile(profile);
 
@@ -46,8 +48,8 @@ public class ProfileResource {
         return ResponseEntity.ok(ApiResponse.of("Recruiter profile created successfully", null));
     }
 
-    @GetMapping("/public/candidate/email/{email}")
-    public ResponseEntity<ApiResponse> getCandidateByEmail(@PathVariable String email) {
+    @GetMapping("/public/candidate/email")
+    public ResponseEntity<ApiResponse> getCandidateByEmail(@RequestParam String email) {
         return ResponseEntity.ok(ApiResponse.of("Candidate profile fetched successfully", profileService.getCandidateByEmail(email)));
     }
 
@@ -56,8 +58,8 @@ public class ProfileResource {
         return ResponseEntity.ok(ApiResponse.of("Candidate profile fetched successfully", profileService.getCandidateById(id)));
     }
 
-    @GetMapping("/public/recruiter/email/{email}")
-    public ResponseEntity<ApiResponse> getRecruiterByEmail(@PathVariable String email) {
+    @GetMapping("/public/recruiter/email")
+    public ResponseEntity<ApiResponse> getRecruiterByEmail(@RequestParam String email) {
         return ResponseEntity.ok(ApiResponse.of("Recruiter profile fetched successfully", profileService.getRecruiterByEmail(email)));
     }
 
@@ -119,4 +121,40 @@ public class ProfileResource {
         return ResponseEntity.ok(ApiResponse.of("Recruiters fetched successfully", profileService.getAllRecruiters()));
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // ADMIN ONLY — delete any profile without ownership check
+    // ─────────────────────────────────────────────────────────────
+
+    @DeleteMapping("/admin/candidate/{id}")
+    public ResponseEntity<ApiResponse> adminDeleteCandidate(@PathVariable Long id,
+                                                            HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+        if (!"ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body(ApiResponse.of("Access denied. Admins only.", null));
+        }
+        // Pass a dummy "admin" email — service will skip ownership check if we
+        // expose a new method, but to keep it simple we reuse deleteCandidateProfile
+        // after fetching the profile's own email.
+        CandidateProfile profile = profileService.getCandidateById(id);
+        if (profile == null) {
+            return ResponseEntity.status(404).body(ApiResponse.of("Candidate not found", null));
+        }
+        profileService.deleteCandidateProfile(id, profile.getEmail());
+        return ResponseEntity.ok(ApiResponse.of("Candidate profile deleted by admin", null));
+    }
+
+    @DeleteMapping("/admin/recruiter/{id}")
+    public ResponseEntity<ApiResponse> adminDeleteRecruiter(@PathVariable Long id,
+                                                            HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+        if (!"ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body(ApiResponse.of("Access denied. Admins only.", null));
+        }
+        RecruiterProfile profile = profileService.getRecruiterById(id);
+        if (profile == null) {
+            return ResponseEntity.status(404).body(ApiResponse.of("Recruiter not found", null));
+        }
+        profileService.deleteRecruiterProfile(id, profile.getEmail());
+        return ResponseEntity.ok(ApiResponse.of("Recruiter profile deleted by admin", null));
+    }
 }

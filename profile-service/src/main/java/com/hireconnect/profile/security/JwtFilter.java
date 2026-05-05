@@ -31,9 +31,13 @@ public class JwtFilter extends OncePerRequestFilter {
 
             try {
                 String email = jwtUtil.extractEmail(token);
+                String role = jwtUtil.extractRole(token);
+                Long userId = jwtUtil.extractUserId(token);
 
-                // store email in request
+                // store email and role in request (used by controllers)
                 request.setAttribute("email", email);
+                request.setAttribute("role", role);
+                request.setAttribute("userId", userId);
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
 

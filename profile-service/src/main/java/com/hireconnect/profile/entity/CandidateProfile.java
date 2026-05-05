@@ -10,6 +10,8 @@ public class CandidateProfile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long profileId;
 
+    private Long userId;
+
     private String fullName;
     private String email;
     private String mobile;
@@ -39,6 +41,14 @@ public class CandidateProfile {
 
 	public void setProfileId(Long profileId) {
 		this.profileId = profileId;
+	}
+
+	public Long getUserId() {
+		return userId;
+	}
+
+	public void setUserId(Long userId) {
+		this.userId = userId;
 	}
 
 	public String getFullName() {

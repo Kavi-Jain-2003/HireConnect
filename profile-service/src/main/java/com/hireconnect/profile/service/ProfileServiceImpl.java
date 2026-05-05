@@ -40,6 +40,7 @@ public class ProfileServiceImpl implements ProfileService {
 
         profile.setProfileId(existing.getProfileId());
         profile.setEmail(existing.getEmail());
+        profile.setUserId(existing.getUserId());
 
         return candidateRepo.save(profile);
     }
