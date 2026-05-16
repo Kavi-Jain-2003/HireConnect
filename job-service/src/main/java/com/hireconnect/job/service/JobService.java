@@ -8,7 +8,7 @@ import com.hireconnect.job.entity.Job;
 
 public interface JobService {
 
-    String addJob(JobRequest request, String recruiterEmail);
+    String addJob(JobRequest request, String recruiterEmail, Long recruiterUserId);
 
     List<Job> getAllJobs();
 

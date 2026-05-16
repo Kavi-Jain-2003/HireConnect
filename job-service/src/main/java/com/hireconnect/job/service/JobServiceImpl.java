@@ -1,15 +1,16 @@
 package com.hireconnect.job.service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import com.hireconnect.job.client.AuthClient;
 import com.hireconnect.job.client.NotificationClient;
 import com.hireconnect.job.client.ProfileClient;
 import com.hireconnect.job.dto.ApiResponse;
+import com.hireconnect.job.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +27,8 @@ public class JobServiceImpl implements JobService {
     private final AuthClient authClient;
     private final NotificationClient notificationClient;
 
-    public JobServiceImpl(JobRepository jobRepository, ProfileClient profileClient, AuthClient authClient, NotificationClient notificationClient) {
+    public JobServiceImpl(JobRepository jobRepository, ProfileClient profileClient,
+            AuthClient authClient, NotificationClient notificationClient) {
         this.jobRepository = jobRepository;
         this.profileClient = profileClient;
         this.authClient = authClient;
@@ -37,9 +39,8 @@ public class JobServiceImpl implements JobService {
         try {
             ApiResponse response = authClient.getUserByEmail(email);
             Map<String, Object> user = toMap(response == null ? null : response.getData());
-            if (user == null || user.get("userId") == null) {
+            if (user == null || user.get("userId") == null)
                 return null;
-            }
             return Long.valueOf(user.get("userId").toString());
         } catch (Exception e) {
             return null;
@@ -49,21 +50,19 @@ public class JobServiceImpl implements JobService {
     private void notifyCandidates(Job job) {
         try {
             ApiResponse candidateResponse = profileClient.getAllCandidates();
-            List<Map<String, Object>> candidates = toList(candidateResponse == null ? null : candidateResponse.getData());
-            if (candidates == null || candidates.isEmpty()) {
+            List<Map<String, Object>> candidates = toList(
+                    candidateResponse == null ? null : candidateResponse.getData());
+            if (candidates == null || candidates.isEmpty())
                 return;
-            }
 
             for (Map<String, Object> candidate : candidates) {
                 Object email = candidate.get("email");
-                if (email == null) {
+                if (email == null)
                     continue;
-                }
 
                 Long recipientUserId = resolveAuthUserId(email.toString());
-                if (recipientUserId == null) {
+                if (recipientUserId == null)
                     continue;
-                }
 
                 Map<String, Object> payload = new HashMap<>();
                 payload.put("userId", recipientUserId);
@@ -75,17 +74,19 @@ public class JobServiceImpl implements JobService {
                 try {
                     notificationClient.dispatch(payload);
                 } catch (Exception ignored) {
-                    // Keep job creation lightweight and resilient if notifications are temporarily unavailable.
                 }
             }
         } catch (Exception ignored) {
-            // Keep job creation lightweight even if profile or notification services are unavailable.
         }
     }
 
     @Override
-    public String addJob(JobRequest request, String email) {
-
+    @Caching(evict = {
+        @CacheEvict(value = "jobs",           allEntries = true),
+        @CacheEvict(value = "jobsByCategory", allEntries = true),
+        @CacheEvict(value = "jobsByLocation", allEntries = true)
+    })
+    public String addJob(JobRequest request, String email, Long recruiterUserId) {
         Job job = new Job();
         job.setTitle(request.getTitle());
         job.setCategory(request.getCategory());
@@ -97,12 +98,11 @@ public class JobServiceImpl implements JobService {
         job.setExperienceRequired(request.getExperienceRequired());
         job.setDescription(request.getDescription());
         job.setCompany(request.getCompany());
-
-        job.setPostedBy(email);   
+        job.setPostedBy(email);
+        job.setRecruiterUserId(recruiterUserId);
 
         Job saved = jobRepository.save(job);
         notifyCandidates(saved);
-
         return "Job created successfully";
     }
 
@@ -114,15 +114,13 @@ public class JobServiceImpl implements JobService {
     @Override
     public Job getJobById(Long id) {
         return jobRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Job not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Job not found with id: " + id));
     }
 
     @Override
-    public List<Job> searchJobs(String title, String location, String category, Double minSalary, Double maxSalary, Integer experience) {
-
-        List<Job> jobs = jobRepository.findAll();
-
-        return jobs.stream()
+    public List<Job> searchJobs(String title, String location, String category,
+            Double minSalary, Double maxSalary, Integer experience) {
+        return jobRepository.findAll().stream()
                 .filter(job -> title == null || title.isBlank()
                         || (job.getTitle() != null && job.getTitle().toLowerCase().contains(title.toLowerCase())))
                 .filter(job -> location == null || location.isBlank()
@@ -139,64 +137,69 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "job", key = "#id"),
+            @CacheEvict(value = "jobs", allEntries = true),
+            @CacheEvict(value = "jobsByCategory", allEntries = true),
+            @CacheEvict(value = "jobsByLocation", allEntries = true)
+    })
     public String updateJob(Long id, JobRequest request, String email) {
-
         Job job = getJobById(id);
 
         if (!job.getPostedBy().equals(email)) {
-            throw new RuntimeException("Unauthorized,You are not allowed to modify this job");
+            throw new RuntimeException("Unauthorized: You are not allowed to modify this job");
         }
 
+        // Bug 6 fix: update ALL fields, not just 3
         job.setTitle(request.getTitle());
         job.setLocation(request.getLocation());
         job.setDescription(request.getDescription());
-
+        job.setCategory(request.getCategory());
+        job.setType(request.getType());
+        job.setSalaryMin(request.getSalaryMin());
+        job.setSalaryMax(request.getSalaryMax());
+        job.setSkills(request.getSkills());
+        job.setExperienceRequired(request.getExperienceRequired());
+        job.setCompany(request.getCompany());
         jobRepository.save(job);
-
         return "Job updated";
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "job", key = "#id"),
+            @CacheEvict(value = "jobs", allEntries = true),
+            @CacheEvict(value = "jobsByCategory", allEntries = true),
+            @CacheEvict(value = "jobsByLocation", allEntries = true)
+    })
     public String deleteJob(Long id, String email) {
-
         Job job = getJobById(id);
-
         if (!job.getPostedBy().equals(email)) {
-            throw new RuntimeException("Unauthorized,You are not allowed to modify this job");
+            throw new RuntimeException("Unauthorized: You are not allowed to modify this job");
         }
-
         jobRepository.delete(job);
-
         return "Job deleted";
     }
 
     @Override
     public String pauseJob(Long id, String email) {
-
         Job job = getJobById(id);
-
         if (!job.getPostedBy().equals(email)) {
-            throw new RuntimeException("Unauthorized,You are not allowed to modify this job");
+            throw new RuntimeException("Unauthorized: You are not allowed to modify this job");
         }
-
         job.setStatus("PAUSED");
         jobRepository.save(job);
-
         return "Job paused";
     }
 
     @Override
     public String closeJob(Long id, String email) {
-
         Job job = getJobById(id);
-
         if (!job.getPostedBy().equals(email)) {
-            throw new RuntimeException("Unauthorized,You are not allowed to modify this job");
+            throw new RuntimeException("Unauthorized: You are not allowed to modify this job");
         }
-
         job.setStatus("CLOSED");
         jobRepository.save(job);
-
         return "Job closed";
     }
 
@@ -204,64 +207,34 @@ public class JobServiceImpl implements JobService {
     public List<Job> getJobsByStatus(String status) {
         return jobRepository.findByStatus(status);
     }
-   
 
     @Override
     public List<JobWithRecruiterDTO> getAllJobsWithRecruiter() {
-
         List<Job> jobs = jobRepository.findAll();
         List<JobWithRecruiterDTO> result = new ArrayList<>();
 
         ApiResponse recruiterResponse = profileClient.getAllRecruiters();
         List<Map<String, Object>> recruiters = toList(recruiterResponse == null ? null : recruiterResponse.getData());
-        if (recruiters == null || recruiters.isEmpty()) {
+        if (recruiters == null || recruiters.isEmpty())
             return result;
-        }
 
         for (Job job : jobs) {
-
             for (Map<String, Object> r : recruiters) {
-
-                if (r.get("email").equals(job.getPostedBy())) {
-
+                if (r.get("email") != null && r.get("email").equals(job.getPostedBy())) {
                     JobWithRecruiterDTO dto = new JobWithRecruiterDTO();
-
                     dto.setId(job.getJobId());
                     dto.setTitle(job.getTitle());
                     dto.setLocation(job.getLocation());
                     dto.setDescription(job.getDescription());
-
                     dto.setRecruiterName((String) r.get("fullName"));
                     dto.setCompanyName((String) r.get("companyName"));
-
                     result.add(dto);
                     break;
                 }
             }
         }
-
         return result;
     }
-
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> toList(Object data) {
-        if (data == null) {
-            return List.of();
-        }
-        return (List<Map<String, Object>>) data;
-    }
-    
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> toMap(Object data) {
-        if (data == null) {
-            return null;
-        }
-        return (Map<String, Object>) data;
-    }
-    // -----------------------------------------------------------------------
-// PATCH — add this method to JobServiceImpl.java
-// Also add the method signature to JobService interface (see JobService.java)
-// -----------------------------------------------------------------------
 
     @Override
     @Transactional
@@ -272,10 +245,23 @@ public class JobServiceImpl implements JobService {
         return jobRepository.save(job);
     }
 
-    // Admin deletes any job — no ownership check needed
     @Override
     public void adminDeleteJob(Long id) {
-        Job job = getJobById(id); // throws if not found
+        Job job = getJobById(id);
         jobRepository.delete(job);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> toList(Object data) {
+        if (data == null)
+            return List.of();
+        return (List<Map<String, Object>>) data;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> toMap(Object data) {
+        if (data == null)
+            return null;
+        return (Map<String, Object>) data;
     }
 }

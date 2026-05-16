@@ -1,14 +1,11 @@
 package com.hireconnect.job.controller;
 
-import java.util.List;
-
 import com.hireconnect.job.dto.ApiResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.hireconnect.job.dto.JobRequest;
-import com.hireconnect.job.dto.JobWithRecruiterDTO;
 import com.hireconnect.job.entity.Job;
 import com.hireconnect.job.service.JobService;
 
@@ -25,11 +22,13 @@ public class JobController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse> createJob(@RequestBody JobRequest request,
-                            HttpServletRequest httpRequest) {
-        String email = (String) httpRequest.getAttribute("email");
-        return ResponseEntity.ok(ApiResponse.of(jobService.addJob(request, email), null));
-    }
+public ResponseEntity<ApiResponse> createJob(@RequestBody JobRequest request,
+                        HttpServletRequest httpRequest) {
+    String email = (String) httpRequest.getAttribute("email");
+    String userIdHeader = httpRequest.getHeader("X-User-Id");
+    Long recruiterId = (userIdHeader != null) ? Long.valueOf(userIdHeader) : null;
+    return ResponseEntity.ok(ApiResponse.of(jobService.addJob(request, email, recruiterId), null));
+}
 
     @GetMapping("/public")
     public ResponseEntity<ApiResponse> getAllJobs() {

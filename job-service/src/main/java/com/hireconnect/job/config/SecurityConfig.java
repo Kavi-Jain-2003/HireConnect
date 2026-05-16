@@ -30,7 +30,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // PUBLIC — no token required
                 .requestMatchers("/jobs/public/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/jobs/**").permitAll()   // ← covers /jobs/3, /jobs/2 etc.
+                .requestMatchers(HttpMethod.GET, "/jobs/**").permitAll()
+
+                // Bug 7 fix: ADMIN rule MUST come before the generic RECRUITER DELETE rule
+                .requestMatchers(HttpMethod.DELETE, "/jobs/admin/**").hasRole("ADMIN")
 
                 // RECRUITER ONLY — create / update / delete
                 .requestMatchers(HttpMethod.POST,   "/jobs").hasRole("RECRUITER")
@@ -52,7 +55,7 @@ public class SecurityConfig {
                 .accessDeniedHandler((request, response, ex2) -> {
                     response.setContentType("application/json");
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    response.getWriter().write("{\"message\": \"Only recruiter can perform this action\"}");
+                    response.getWriter().write("{\"message\": \"Access denied: insufficient role\"}");
                 })
             )
 
