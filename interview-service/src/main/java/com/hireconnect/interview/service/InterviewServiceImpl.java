@@ -6,13 +6,13 @@ import com.hireconnect.interview.client.JobClient;
 import com.hireconnect.interview.client.NotificationClient;
 import com.hireconnect.interview.client.ProfileClient;
 import com.hireconnect.interview.entity.Interview;
+import com.hireconnect.interview.messaging.NotificationEventPublisher;
 import com.hireconnect.interview.dto.ApiResponse;
 import com.hireconnect.interview.repository.InterviewRepository;
 import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +26,9 @@ public class InterviewServiceImpl implements InterviewService {
     private final AuthClient authClient;
     private final NotificationClient notificationClient;
     private final ObjectMapper objectMapper;
+    private final NotificationEventPublisher eventPublisher; // Bug 1 fix: no longer null
 
+    // Bug 1 fix: inject NotificationEventPublisher via constructor instead of hardcoding null
     public InterviewServiceImpl(
             InterviewRepository repository,
             ApplicationClient applicationClient,
@@ -34,7 +36,8 @@ public class InterviewServiceImpl implements InterviewService {
             JobClient jobClient,
             AuthClient authClient,
             NotificationClient notificationClient,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            NotificationEventPublisher eventPublisher) {
         this.repository = repository;
         this.applicationClient = applicationClient;
         this.profileClient = profileClient;
@@ -42,6 +45,7 @@ public class InterviewServiceImpl implements InterviewService {
         this.authClient = authClient;
         this.notificationClient = notificationClient;
         this.objectMapper = objectMapper;
+        this.eventPublisher = eventPublisher;  // Bug 1 fix: properly injected
     }
 
     private Map<String, Object> getApplication(Long applicationId) {
@@ -63,9 +67,7 @@ public class InterviewServiceImpl implements InterviewService {
         try {
             ApiResponse response = authClient.getUserByEmail(email);
             Map<String, Object> user = toMap(response == null ? null : response.getData());
-            if (user == null || user.get("userId") == null) {
-                return null;
-            }
+            if (user == null || user.get("userId") == null) return null;
             return Long.valueOf(user.get("userId").toString());
         } catch (Exception e) {
             return null;
@@ -75,37 +77,32 @@ public class InterviewServiceImpl implements InterviewService {
     private void notifyCandidate(Interview interview, String eventLabel) {
         try {
             Map<String, Object> application = getApplication(interview.getApplicationId());
+            if (application == null) return;
+
             Long candidateId = application.get("candidateId") == null
-                    ? null
-                    : Long.valueOf(application.get("candidateId").toString());
+                    ? null : Long.valueOf(application.get("candidateId").toString());
             Long jobId = application.get("jobId") == null
-                    ? null
-                    : Long.valueOf(application.get("jobId").toString());
+                    ? null : Long.valueOf(application.get("jobId").toString());
 
             Map<String, Object> candidate = candidateId == null ? null : getCandidate(candidateId);
-            Map<String, Object> job = jobId == null ? null : getJob(jobId);
+            Map<String, Object> job       = jobId == null       ? null : getJob(jobId);
 
             String candidateEmail = candidate == null || candidate.get("email") == null
-                    ? null
-                    : candidate.get("email").toString();
+                    ? null : candidate.get("email").toString();
             String jobTitle = job == null || job.get("title") == null
-                    ? "your application"
-                    : job.get("title").toString();
+                    ? "your application" : job.get("title").toString();
+
             Long recipientUserId = candidateEmail == null ? null : resolveAuthUserId(candidateEmail);
+            if (recipientUserId == null) return;
 
-            if (recipientUserId == null) {
-                return;
-            }
+            // Bug 2 fix: declare the variables that were previously undefined
+            String interviewDetails = interview.getMode() + " on " + interview.getScheduledAt()
+                    + (interview.getMeetLink() != null ? " | Link: " + interview.getMeetLink() : "")
+                    + (interview.getLocation()  != null ? " | Location: " + interview.getLocation() : "");
 
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("userId", recipientUserId);
-            payload.put("type", "INTERVIEW");
-            payload.put("subject", "Interview " + eventLabel.toLowerCase());
-            payload.put("email", candidateEmail);
-            payload.put("message", "Interview " + eventLabel.toLowerCase() + " for \"" + jobTitle
-                    + "\". Scheduled for " + interview.getScheduledAt() + ".");
+            // Bug 1 fix: eventPublisher is now properly injected, not null
+            eventPublisher.publishInterviewScheduled(recipientUserId, interviewDetails, candidateEmail);
 
-            notificationClient.dispatch(payload);
         } catch (Exception ignored) {
             // Interview scheduling should succeed even when notification delivery is temporarily unavailable.
         }
@@ -113,11 +110,12 @@ public class InterviewServiceImpl implements InterviewService {
 
     @Override
     public Interview scheduleInterview(Interview interview) {
-        Interview saved;
         Interview existing = interview.getApplicationId() == null
                 ? null
-                : repository.findFirstByApplicationIdOrderByInterviewIdDesc(interview.getApplicationId()).orElse(null);
+                : repository.findFirstByApplicationIdOrderByInterviewIdDesc(interview.getApplicationId())
+                             .orElse(null);
 
+        Interview saved;
         if (existing == null) {
             interview.setStatus("SCHEDULED");
             saved = repository.save(interview);
@@ -127,10 +125,10 @@ public class InterviewServiceImpl implements InterviewService {
 
         boolean scheduleChanged =
                 !java.util.Objects.equals(existing.getScheduledAt(), interview.getScheduledAt())
-                        || !java.util.Objects.equals(existing.getMode(), interview.getMode())
-                        || !java.util.Objects.equals(existing.getMeetLink(), interview.getMeetLink())
-                        || !java.util.Objects.equals(existing.getLocation(), interview.getLocation())
-                        || !java.util.Objects.equals(existing.getNotes(), interview.getNotes());
+             || !java.util.Objects.equals(existing.getMode(),        interview.getMode())
+             || !java.util.Objects.equals(existing.getMeetLink(),    interview.getMeetLink())
+             || !java.util.Objects.equals(existing.getLocation(),    interview.getLocation())
+             || !java.util.Objects.equals(existing.getNotes(),       interview.getNotes());
 
         existing.setApplicationId(interview.getApplicationId());
         existing.setScheduledAt(interview.getScheduledAt());
@@ -148,7 +146,7 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
-    public Interview confirmInterview(Long interviewId) {    // was int
+    public Interview confirmInterview(Long interviewId) {
         Interview interview = repository.findById(interviewId).orElseThrow();
         interview.setStatus("CONFIRMED");
         Interview saved = repository.save(interview);
@@ -157,7 +155,7 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
-    public Interview rescheduleInterview(Long interviewId, LocalDateTime newTime) { // was int
+    public Interview rescheduleInterview(Long interviewId, LocalDateTime newTime) {
         Interview interview = repository.findById(interviewId).orElseThrow();
         interview.setScheduledAt(newTime);
         interview.setStatus("RESCHEDULED");
@@ -167,7 +165,7 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
-    public void cancelInterview(Long interviewId) { // was int
+    public void cancelInterview(Long interviewId) {
         Interview interview = repository.findById(interviewId).orElseThrow();
         interview.setStatus("CANCELLED");
         repository.save(interview);
@@ -175,7 +173,7 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
-    public List<Interview> getByApplication(Long applicationId) { // was int
+    public List<Interview> getByApplication(Long applicationId) {
         return repository.findByApplicationId(applicationId);
     }
 

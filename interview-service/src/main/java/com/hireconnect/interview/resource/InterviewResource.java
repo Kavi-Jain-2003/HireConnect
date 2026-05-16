@@ -76,9 +76,9 @@ public class InterviewResource {
     public ResponseEntity<ApiResponse> cancel(@PathVariable Long id,    // was int
                                               HttpServletRequest request) {
         String role = (String) request.getAttribute("role");
-        if (!"RECRUITER".equals(role)) {
+        if (!"RECRUITER".equals(role) && !"CANDIDATE".equals(role)) {
             return ResponseEntity.status(403)
-                    .body(ApiResponse.of("Access denied: only Recruiter can cancel", null));
+                    .body(ApiResponse.of("Access denied: only Recruiter or Candidate can cancel", null));
         }
         service.cancelInterview(id);
         return ResponseEntity.ok(ApiResponse.of("Interview cancelled successfully", null));

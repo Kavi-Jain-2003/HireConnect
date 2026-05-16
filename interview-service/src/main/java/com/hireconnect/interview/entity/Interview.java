@@ -4,18 +4,19 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "interviews", schema = "interview_schema")  // Bug 3 fix: explicit table + schema
 public class Interview {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long interviewId;   // was int
+    private Long interviewId;
 
-    private Long applicationId; // was int
+    private Long applicationId;
     private LocalDateTime scheduledAt;
-    private String mode;        // Online / In-Person
+    private String mode;       // Online / In-Person
     private String meetLink;
     private String location;
-    private String status;      // SCHEDULED, CONFIRMED, RESCHEDULED, CANCELLED
+    private String status;     // SCHEDULED, CONFIRMED, RESCHEDULED, CANCELLED
     private String notes;
 
     public Interview() {}
@@ -30,8 +31,6 @@ public class Interview {
         this.status = status;
         this.notes = notes;
     }
-
-    // Getters & Setters
 
     public Long getInterviewId() { return interviewId; }
     public void setInterviewId(Long interviewId) { this.interviewId = interviewId; }

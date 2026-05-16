@@ -2,18 +2,23 @@ package com.hireconnect.interview.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.security.Key;
 
+// Bug 8 fix: made @Component so @Value injection works; changed static methods to instance methods
+@Component
 public class JwtUtil {
 
-    private static final String SECRET_KEY = "mysecretkeymysecretkeymysecretkey123456";
+    @Value("${jwt.secret}")
+    private String secretKey;
 
-    private static Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+    private Key getSigningKey() {
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
-    public static String extractEmail(String token) {
+    public String extractEmail(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
@@ -22,7 +27,7 @@ public class JwtUtil {
                 .getSubject();
     }
 
-    public static String extractRole(String token) {
+    public String extractRole(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
