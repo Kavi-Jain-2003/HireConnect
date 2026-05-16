@@ -19,6 +19,7 @@ import com.hireconnect.application.client.ProfileClient;
 import com.hireconnect.application.entity.Application;
 import com.hireconnect.application.enums.ApplicationStatus;
 import com.hireconnect.application.exception.ResourceNotFoundException;
+import com.hireconnect.application.messaging.NotificationEventPublisher;
 import com.hireconnect.application.repository.ApplicationRepository;
 import java.util.Map;
 import java.util.HashMap;
@@ -28,32 +29,35 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
 
-	private static final Logger log = LoggerFactory.getLogger(ApplicationServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(ApplicationServiceImpl.class);
 
-	private final ApplicationRepository repository;
-	private final JobClient jobClient;
-	private final ProfileClient profileClient;
-	private final AuthClient authClient;
-	private final InterviewClient interviewClient;
-	private final NotificationClient notificationClient;
-	private final ObjectMapper objectMapper;
+    private final ApplicationRepository repository;
+    private final JobClient jobClient;
+    private final ProfileClient profileClient;
+    private final AuthClient authClient;
+    private final InterviewClient interviewClient;
+    private final NotificationClient notificationClient;
+    private final ObjectMapper objectMapper;
+    private final NotificationEventPublisher eventPublisher;
 
-	public ApplicationServiceImpl(
-			ApplicationRepository repository,
-			JobClient jobClient,
-			ProfileClient profileClient,
-			AuthClient authClient,
-			InterviewClient interviewClient,
-			NotificationClient notificationClient,
-			ObjectMapper objectMapper) {
-		this.repository = repository;
-		this.jobClient = jobClient;
-		this.profileClient = profileClient;
-		this.authClient = authClient;
-		this.interviewClient = interviewClient;
-		this.notificationClient = notificationClient;
-		this.objectMapper = objectMapper;
-	}
+    public ApplicationServiceImpl(
+            ApplicationRepository repository,
+            JobClient jobClient,
+            ProfileClient profileClient,
+            AuthClient authClient,
+            InterviewClient interviewClient,
+            NotificationClient notificationClient,
+            ObjectMapper objectMapper,
+        NotificationEventPublisher eventPublisher) {
+        this.repository = repository;
+        this.jobClient = jobClient;
+        this.profileClient = profileClient;
+        this.authClient = authClient;
+        this.interviewClient = interviewClient;
+        this.notificationClient = notificationClient;
+        this.objectMapper = objectMapper;
+        this.eventPublisher = eventPublisher;
+    }
 
     private String getLoggedInUserEmail() {
         return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -96,7 +100,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
     }
 
-	private Long resolveAuthUserId(String email) {
+    private Long resolveAuthUserId(String email) {
         try {
             ApiResponse response = authClient.getUserByEmail(email);
             Map<String, Object> user = toMap(response == null ? null : response.getData());
@@ -194,7 +198,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                     break;
                 default:
                     subject = "Application update";
-                    message = "Your application for \"" + jobTitle + "\" is now " + normalizedStatus.replace('_', ' ').toLowerCase(Locale.ROOT) + ".";
+                    message = "Your application for \"" + jobTitle + "\" is now "
+                            + normalizedStatus.replace('_', ' ').toLowerCase(Locale.ROOT) + ".";
                     break;
             }
 
@@ -211,13 +216,33 @@ public class ApplicationServiceImpl implements ApplicationService {
                     candidateId, jobId, status, ex);
         }
     }
+    private void notifyRecruiter(Long jobId, Long candidateId) {
+    try {
+        Map<String, Object> job = validateJob(jobId);
+        String recruiterEmail = job.get("recruiterEmail") == null ? null : job.get("recruiterEmail").toString();
+        String jobTitle = job.get("title") == null ? "a job" : job.get("title").toString();
+        Long recruiterUserId = job.get("recruiterUserId") == null ? null : Long.valueOf(job.get("recruiterUserId").toString());
 
-	// APPLY (ONLY CANDIDATE)
-	@Override
+        String message = "A new candidate has applied for \"" + jobTitle + "\".";
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("userId", recruiterUserId);
+        payload.put("type", "APPLICATION_STATUS");
+        payload.put("subject", "New application received");
+        payload.put("email", recruiterEmail);
+        payload.put("message", message);
+
+        notificationClient.dispatch(payload);
+    } catch (Exception ex) {
+        log.warn("Failed to notify recruiter for jobId={}", jobId, ex);
+    }
+}
+
+    // APPLY (ONLY CANDIDATE)
+    @Override
     public ApplicationResponse submitApplication(ApplicationRequest request) {
 
         if (!getLoggedInUserRole().equals("ROLE_CANDIDATE")) {
-        	throw new BusinessException("Only candidates can apply");
+            throw new BusinessException("Only candidates can apply");
 
         }
 
@@ -227,105 +252,106 @@ public class ApplicationServiceImpl implements ApplicationService {
         validateJob(request.getJobId());
 
         repository.findFirstByJobIdAndCandidateId(request.getJobId(), candidateId)
-        .ifPresent(existing -> {
+                .ifPresent(existing -> {
 
-            if (existing.getStatus() != ApplicationStatus.WITHDRAWN) {
-                throw new BusinessException("You have already applied for this job");
-            }
+                    if (existing.getStatus() != ApplicationStatus.WITHDRAWN) {
+                        throw new BusinessException("You have already applied for this job");
+                    }
 
-            // ✅ If withdrawn → allow reapply by deleting old record OR updating it
-            repository.delete(existing); 
-            // OR alternatively:
-            // existing.setStatus(ApplicationStatus.APPLIED);
-            // existing.setAppliedAt(LocalDateTime.now());
-            // repository.save(existing);
-        });
+                    // ✅ If withdrawn → allow reapply by deleting old record OR updating it
+                    repository.delete(existing);
+                    // OR alternatively:
+                    // existing.setStatus(ApplicationStatus.APPLIED);
+                    // existing.setAppliedAt(LocalDateTime.now());
+                    // repository.save(existing);
+                });
 
-		Application app = new Application();
-		app.setJobId(request.getJobId());
-		app.setCandidateId(candidateId);
-		app.setCoverLetter(request.getCoverLetter());
-		app.setResumeUrl(request.getResumeUrl());
-		app.setAppliedAt(LocalDateTime.now());
-		app.setStatus(ApplicationStatus.APPLIED);
+        Application app = new Application();
+        app.setJobId(request.getJobId());
+        app.setCandidateId(candidateId);
+        app.setCoverLetter(request.getCoverLetter());
+        app.setResumeUrl(request.getResumeUrl());
+        app.setAppliedAt(LocalDateTime.now());
+        app.setStatus(ApplicationStatus.APPLIED);
 
-		Application saved = repository.save(app);
-		notifyCandidate(saved.getCandidateId(), saved.getJobId(), "APPLIED");
+        Application saved = repository.save(app);
+        notifyCandidate(saved.getCandidateId(), saved.getJobId(), "APPLIED");
 
-		return new ApplicationResponse("Application submitted successfully", saved.getApplicationId());
-	}
-//Applied → Shortlisted → Interview Scheduled →	Offered / Rejected) 
-	// UPDATE STATUS (ONLY RECRUITER)
-	@Override
-	public ApplicationResponse updateStatus(Long applicationId, UpdateStatusRequest request) {
+        return new ApplicationResponse("Application submitted successfully", saved.getApplicationId());
+    }
 
-		if (!getLoggedInUserRole().equals("ROLE_RECRUITER")) {
-			throw new BusinessException("Only recruiters can update status");
-		}
+    // Applied → Shortlisted → Interview Scheduled → Offered / Rejected)
+    // UPDATE STATUS (ONLY RECRUITER)
+    @Override
+    public ApplicationResponse updateStatus(Long applicationId, UpdateStatusRequest request) {
 
-		Application app = repository.findById(applicationId)
-				.orElseThrow(() -> new ResourceNotFoundException("Application not found"));
-		ApplicationStatus current = app.getStatus();
-		ApplicationStatus next = request.getStatus();
+        if (!getLoggedInUserRole().equals("ROLE_RECRUITER")) {
+            throw new BusinessException("Only recruiters can update status");
+        }
 
-		// ❗ Prevent change after final state
-		if (current == ApplicationStatus.OFFERED || current == ApplicationStatus.REJECTED) {
-		    throw new BusinessException("Application already finalized");
-		}
+        Application app = repository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+        ApplicationStatus current = app.getStatus();
+        ApplicationStatus next = request.getStatus();
 
-		// ❗ Enforce valid transitions
-		if (current == ApplicationStatus.APPLIED && next != ApplicationStatus.SHORTLISTED) {
-		    throw new BusinessException("Invalid status transition: APPLIED → " + next);
-		}
+        // ❗ Prevent change after final state
+        if (current == ApplicationStatus.OFFERED || current == ApplicationStatus.REJECTED) {
+            throw new BusinessException("Application already finalized");
+        }
 
-		if (current == ApplicationStatus.SHORTLISTED && next != ApplicationStatus.INTERVIEW_SCHEDULED) {
-		    throw new BusinessException("Invalid status transition: SHORTLISTED → " + next);
-		}
+        // ❗ Enforce valid transitions
+        if (current == ApplicationStatus.APPLIED && next != ApplicationStatus.SHORTLISTED) {
+            throw new BusinessException("Invalid status transition: APPLIED → " + next);
+        }
 
-		if (current == ApplicationStatus.INTERVIEW_SCHEDULED &&
-		        !(next == ApplicationStatus.OFFERED || next == ApplicationStatus.REJECTED)) {
-		    throw new BusinessException("Invalid status transition: INTERVIEW_SCHEDULED → " + next);
-		}
+        if (current == ApplicationStatus.SHORTLISTED && next != ApplicationStatus.INTERVIEW_SCHEDULED) {
+            throw new BusinessException("Invalid status transition: SHORTLISTED → " + next);
+        }
 
-		app.setStatus(next);
-		repository.save(app);
-		notifyCandidate(app.getCandidateId(), app.getJobId(), next.name());
+        if (current == ApplicationStatus.INTERVIEW_SCHEDULED &&
+                !(next == ApplicationStatus.OFFERED || next == ApplicationStatus.REJECTED)) {
+            throw new BusinessException("Invalid status transition: INTERVIEW_SCHEDULED → " + next);
+        }
 
-		return new ApplicationResponse("Application status updated successfully", app.getApplicationId());
-	}
+        app.setStatus(next);
+        repository.save(app);
+        notifyCandidate(app.getCandidateId(), app.getJobId(), next.name());
 
-	@Override
-	public ApplicationResponse finalizeStatus(Long applicationId, UpdateStatusRequest request) {
+        return new ApplicationResponse("Application status updated successfully", app.getApplicationId());
+    }
 
-		if (!getLoggedInUserRole().equals("ROLE_RECRUITER")) {
-			throw new BusinessException("Only recruiters can update status");
-		}
+    @Override
+    public ApplicationResponse finalizeStatus(Long applicationId, UpdateStatusRequest request) {
 
-		Application app = repository.findById(applicationId)
-				.orElseThrow(() -> new ResourceNotFoundException("Application not found"));
-		ApplicationStatus current = app.getStatus();
-		ApplicationStatus next = request.getStatus();
+        if (!getLoggedInUserRole().equals("ROLE_RECRUITER")) {
+            throw new BusinessException("Only recruiters can update status");
+        }
 
-		if (next != ApplicationStatus.OFFERED && next != ApplicationStatus.REJECTED) {
-		    throw new BusinessException("Final status must be OFFERED or REJECTED");
-		}
+        Application app = repository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+        ApplicationStatus current = app.getStatus();
+        ApplicationStatus next = request.getStatus();
 
-		if (next == ApplicationStatus.OFFERED && !hasConfirmedInterview(applicationId)) {
-		    throw new BusinessException("Candidate can only be offered after the interview is confirmed");
-		}
+        if (next != ApplicationStatus.OFFERED && next != ApplicationStatus.REJECTED) {
+            throw new BusinessException("Final status must be OFFERED or REJECTED");
+        }
 
-		if (current == ApplicationStatus.OFFERED || current == ApplicationStatus.REJECTED) {
-		    throw new BusinessException("Application already finalized");
-		}
+        if (next == ApplicationStatus.OFFERED && !hasConfirmedInterview(applicationId)) {
+            throw new BusinessException("Candidate can only be offered after the interview is confirmed");
+        }
 
-		app.setStatus(next);
-		repository.save(app);
-		notifyCandidate(app.getCandidateId(), app.getJobId(), next.name());
+        if (current == ApplicationStatus.OFFERED || current == ApplicationStatus.REJECTED) {
+            throw new BusinessException("Application already finalized");
+        }
 
-		return new ApplicationResponse("Application finalized successfully", app.getApplicationId());
-	}
+        app.setStatus(next);
+        repository.save(app);
+        notifyCandidate(app.getCandidateId(), app.getJobId(), next.name());
 
-	@Override
+        return new ApplicationResponse("Application finalized successfully", app.getApplicationId());
+    }
+
+    @Override
     public ApplicationResponse withdrawApplication(Long applicationId) {
 
         String email = getLoggedInUserEmail();
@@ -334,62 +360,65 @@ public class ApplicationServiceImpl implements ApplicationService {
         Application app = repository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
 
-		if (!app.getCandidateId().equals(candidateId)) {
-			throw new BusinessException("You can only withdraw your own application");
-		}
-		if (app.getStatus() == ApplicationStatus.WITHDRAWN) {
-		    throw new BusinessException("Application already withdrawn");
-		}
+        if (!app.getCandidateId().equals(candidateId)) {
+            throw new BusinessException("You can only withdraw your own application");
+        }
+        if (app.getStatus() == ApplicationStatus.WITHDRAWN) {
+            throw new BusinessException("Application already withdrawn");
+        }
 
-		// ❗ Prevent withdraw after final decision
-		if (app.getStatus() == ApplicationStatus.OFFERED ||
-		    app.getStatus() == ApplicationStatus.REJECTED) {
+        // ❗ Prevent withdraw after final decision
+        if (app.getStatus() == ApplicationStatus.OFFERED ||
+                app.getStatus() == ApplicationStatus.REJECTED) {
 
-		    throw new BusinessException("Cannot withdraw after final decision");
-		}
+            throw new BusinessException("Cannot withdraw after final decision");
+        }
 
-		app.setStatus(ApplicationStatus.WITHDRAWN);
-		repository.save(app);
+        app.setStatus(ApplicationStatus.WITHDRAWN);
+        repository.save(app);
 
-		return new ApplicationResponse("Application withdrawn successfully", app.getApplicationId());
-	}
-   @Override
+        return new ApplicationResponse("Application withdrawn successfully", app.getApplicationId());
+    }
+
+    @Override
     public List<Application> getByCandidate(Long candidateId) {
- 
+
         // Ownership check: a candidate may only fetch their own applications.
         // Recruiters and Admins can fetch any candidate's applications.
         String role = getLoggedInUserRole();
- 
+
         if ("ROLE_CANDIDATE".equals(role)) {
             String email = getLoggedInUserEmail();
             Long loggedInCandidateId = validateCandidate(email);
- 
+
             if (!loggedInCandidateId.equals(candidateId)) {
                 throw new BusinessException("Access denied: you can only view your own applications");
             }
         }
         // ROLE_RECRUITER and ROLE_ADMIN pass through without restriction.
- 
+
         return repository.findByCandidateId(candidateId);
     }
-	@Override
-	public List<Application> getByJob(Long jobId) {
-		return repository.findByJobId(jobId);
-	}
 
-	@Override
+    @Override
+    public List<Application> getByJob(Long jobId) {
+        return repository.findByJobId(jobId);
+    }
+
+    @Override
     public Application getApplicationById(Long applicationId) {
         return repository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
     }
-	@Override
-	public Long countByJob(Long jobId) {
 
-	    // optional: validate job exists
-	    validateJob(jobId);
+    @Override
+    public Long countByJob(Long jobId) {
 
-	    return repository.countByJobId(jobId);
-	}
+        // optional: validate job exists
+        validateJob(jobId);
+
+        return repository.countByJobId(jobId);
+    }
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> toMap(Object data) {

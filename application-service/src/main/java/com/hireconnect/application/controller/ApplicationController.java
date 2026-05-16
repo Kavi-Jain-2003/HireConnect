@@ -1,7 +1,5 @@
 package com.hireconnect.application.controller;
 
-import java.util.List;
-
 import com.hireconnect.application.dto.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 import com.hireconnect.application.dto.ApplicationRequest;
 import com.hireconnect.application.dto.ApplicationResponse;
 import com.hireconnect.application.dto.UpdateStatusRequest;
-import com.hireconnect.application.entity.Application;
 import com.hireconnect.application.service.ApplicationService;
 
 @RestController
