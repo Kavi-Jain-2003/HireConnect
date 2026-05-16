@@ -44,6 +44,10 @@ public class AdminController {
     private boolean isAdmin(HttpServletRequest request) {
         // JwtFilter already sets "role" as a request attribute
         String role = (String) request.getAttribute("role");
+        if(role==null)
+        {
+            role=request.getHeader("X-User-Role");
+        }
         return "ADMIN".equalsIgnoreCase(role);
     }
 

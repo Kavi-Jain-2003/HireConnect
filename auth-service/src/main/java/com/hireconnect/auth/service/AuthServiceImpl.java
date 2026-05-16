@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -20,11 +21,17 @@ public class AuthServiceImpl implements AuthService {
 	private final AuthRepository authRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtUtil jwtUtil;
+    private final TokenBlackListService blacklistService;
+    // private final JwtUtil jwtUtil;
 
-	public AuthServiceImpl(AuthRepository authRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+	public AuthServiceImpl(AuthRepository authRepository,
+			PasswordEncoder passwordEncoder,
+			JwtUtil jwtUtil,
+			TokenBlackListService blacklistService) {
 		this.authRepository = authRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.jwtUtil = jwtUtil;
+		this.blacklistService = blacklistService;
 	}
 
 	@Override
@@ -90,10 +97,31 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	// ✅ LOGOUT (state less → just client-side)
-	@Override
-	public String logout(String token) {
-		return "Logout successful (client should discard token)";
-	}
+	 @Override
+    public String logout(String token) {
+        if (token == null || token.isBlank()) {
+            return "Logout successful";
+        }
+
+        // Strip "Bearer " prefix if caller passed the full header value
+        String rawToken = token.startsWith("Bearer ") ? token.substring(7) : token;
+
+        try {
+            // Calculate remaining TTL so Redis auto-expires at the same time as the JWT
+            Date expiry = jwtUtil.extractExpiration(rawToken);
+            long remainingMillis = expiry.getTime() - System.currentTimeMillis();
+
+            if (remainingMillis > 0 && blacklistService != null) {
+                blacklistService.blacklist(rawToken, java.time.Duration.ofMillis(remainingMillis));
+            }
+            // If token already expired, no need to blacklist
+        } catch (Exception e) {
+            // Invalid token — nothing to blacklist, but logout succeeds
+        }
+
+        return "Logout successful";
+    }
+
 
 	// ✅ VALIDATE TOKEN
 	@Override
