@@ -7,6 +7,12 @@ public class ApiResponse {
 
     public ApiResponse() {
     }
+     // Parameterized Constructor
+    public ApiResponse(String message, Object data) {
+        this.message = message;
+        this.data = data;
+    }
+
 
     public String getMessage() {
         return message;

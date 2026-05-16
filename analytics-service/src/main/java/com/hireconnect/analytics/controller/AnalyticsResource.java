@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hireconnect.analytics.client.ProfileClient;
-import com.hireconnect.analytics.dto.AnalyticsSummary;
 import com.hireconnect.analytics.dto.RecruiterProfileDTO;
 import com.hireconnect.analytics.security.JwtUtil;
 import com.hireconnect.analytics.service.AnalyticsService;
