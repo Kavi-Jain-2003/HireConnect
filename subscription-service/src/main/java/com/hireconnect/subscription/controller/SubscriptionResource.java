@@ -1,7 +1,6 @@
 package com.hireconnect.subscription.controller;
 
 import com.hireconnect.subscription.entity.Subscription;
-import com.hireconnect.subscription.entity.Invoice;
 import com.hireconnect.subscription.dto.ApiResponse;
 import com.hireconnect.subscription.service.SubscriptionService;
 
@@ -10,7 +9,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController

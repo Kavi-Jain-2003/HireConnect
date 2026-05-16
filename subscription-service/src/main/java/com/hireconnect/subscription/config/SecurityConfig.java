@@ -14,9 +14,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfig {
 
-    @Bean
-    public JwtFilter jwtFilter() {
-        return new JwtFilter();
+    // Bug 8 fix: inject Spring-managed JwtFilter instead of using new JwtFilter()
+    private final JwtFilter jwtFilter;
+
+    public SecurityConfig(JwtFilter jwtFilter) {
+        this.jwtFilter = jwtFilter;
     }
 
     @Bean
@@ -32,7 +34,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/subscriptions/**").hasRole("RECRUITER")
                     .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
