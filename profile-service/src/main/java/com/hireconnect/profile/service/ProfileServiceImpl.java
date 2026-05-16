@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 
 import com.hireconnect.profile.entity.*;
 import com.hireconnect.profile.repository.*;
-import com.hireconnect.profile.service.ProfileService;
 
 @Service
 public class ProfileServiceImpl implements ProfileService {
