@@ -12,7 +12,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -77,21 +76,44 @@ public class NotificationController {
         return ResponseEntity.ok(ApiResponse.of("Unread count fetched successfully", service.getUnreadCount(getCurrentUserId(request))));
     }
 
+    // private Long getCurrentUserId(HttpServletRequest request) {
+    //     String authHeader = request.getHeader("Authorization");
+    //     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+    //         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing bearer token");
+    //     }
+
+    //     String token = authHeader.substring(7);
+    //     if (!jwtUtil.validateToken(token)) {
+    //         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+    //     }
+
+    //     Long userId = jwtUtil.extractUserId(token);
+    //     if (userId == null) {
+    //         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token does not contain userId");
+    //     }
+    //     return userId;
+    // }
+    
     private Long getCurrentUserId(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing bearer token");
-        }
-
-        String token = authHeader.substring(7);
-        if (!jwtUtil.validateToken(token)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
-        }
-
-        Long userId = jwtUtil.extractUserId(token);
-        if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token does not contain userId");
-        }
-        return userId;
+    // First try the header set by API Gateway
+    String userIdHeader = request.getHeader("X-User-Id");
+    if (userIdHeader != null && !userIdHeader.isBlank()) {
+        return Long.valueOf(userIdHeader);
     }
+
+    // Fallback: read from JWT directly
+    String authHeader = request.getHeader("Authorization");
+    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing bearer token");
+    }
+    String token = authHeader.substring(7);
+    if (!jwtUtil.validateToken(token)) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+    }
+    Long userId = jwtUtil.extractUserId(token);
+    if (userId == null) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token does not contain userId");
+    }
+    return userId;
+}
 }
