@@ -65,7 +65,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         //    does NOT intercept it and forward it to the backend.
         //    GithubCallbackComponent reads ?token=&email=&role= and stores them.
         String encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8);
-        String redirectUrl = "http://localhost:4200/auth/github/callback"
+        String redirectUrl = "http://localhost:4200/github-callback"
                 + "?token=" + token
                 + "&email=" + encodedEmail
                 + "&role=" + role;
