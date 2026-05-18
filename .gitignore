@@ -9,6 +9,7 @@ target/
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 .classpath
 =======
 .classpath
@@ -28,3 +29,6 @@ target/
 =======
 .classpath
 >>>>>>> feature/subscription-service
+=======
+.classpath
+>>>>>>> feature/notification-service
