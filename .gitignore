@@ -1,42 +1,29 @@
+# Maven
 target/
-*.log
 *.class
-.settings/
-.project
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-.classpath
-=======
-.classpath
->>>>>>> eureka-service
-=======
-.classpath
->>>>>>> feature/job-service
-=======
-.classpath
->>>>>>> feature/application-service
-=======
-.classpath
->>>>>>> feature/profile-service
-=======
-.classpath
->>>>>>> feature/interview-service
-=======
-.classpath
->>>>>>> feature/subscription-service
-=======
-.classpath
->>>>>>> feature/notification-service
-=======
-.classpath
->>>>>>> feature/analytics-service
-=======
-.classpath
->>>>>>> api-gateway
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Secrets - never commit these
+*.env
+.env
+.env.local
+application-local.properties
+application-secret.properties
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
