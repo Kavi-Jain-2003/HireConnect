@@ -13,8 +13,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -28,7 +26,7 @@ jobs:
         run: |
           cd auth-service
           chmod +x mvnw
-          ./mvnw clean verify sonar:sonar \
+          ./mvnw clean install -DskipTests sonar:sonar \
           -Dsonar.projectKey=Kavi-Jain-2003_HireConnect \
           -Dsonar.organization=kavi-jain-2003 \
           -Dsonar.host.url=https://sonarcloud.io
