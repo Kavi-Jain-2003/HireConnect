@@ -11,6 +11,7 @@ target/
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 .classpath
 =======
 .classpath
@@ -36,3 +37,6 @@ target/
 =======
 .classpath
 >>>>>>> feature/analytics-service
+=======
+.classpath
+>>>>>>> api-gateway
