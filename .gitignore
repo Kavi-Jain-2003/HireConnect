@@ -5,6 +5,7 @@ target/
 .project
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 .classpath
 =======
 .classpath
@@ -12,3 +13,6 @@ target/
 =======
 .classpath
 >>>>>>> feature/job-service
+=======
+.classpath
+>>>>>>> feature/application-service
