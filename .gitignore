@@ -10,6 +10,7 @@ target/
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 .classpath
 =======
 .classpath
@@ -32,3 +33,6 @@ target/
 =======
 .classpath
 >>>>>>> feature/notification-service
+=======
+.classpath
+>>>>>>> feature/analytics-service
