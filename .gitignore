@@ -4,7 +4,11 @@ target/
 .settings/
 .project
 <<<<<<< HEAD
+<<<<<<< HEAD
 .classpath
 =======
 .classpath
 >>>>>>> eureka-service
+=======
+.classpath
+>>>>>>> feature/job-service
