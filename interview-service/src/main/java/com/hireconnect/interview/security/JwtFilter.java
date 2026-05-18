@@ -17,11 +17,26 @@ public class JwtFilter implements Filter {
         this.jwtUtil = jwtUtil;
     }
 
+    private boolean isSwaggerRequest(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-resources")
+                || path.startsWith("/webjars")
+                || path.equals("/swagger-ui.html")
+                || path.equals("/favicon.ico");
+    }
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
         HttpServletRequest req = (HttpServletRequest) request;
+
+        if (isSwaggerRequest(req)) {
+            chain.doFilter(request, response);
+            return;
+        }
 
         String header = req.getHeader("Authorization");
 
