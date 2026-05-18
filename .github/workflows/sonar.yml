@@ -7,11 +7,12 @@ on:
       - main
 
 jobs:
-  build:
+  sonar:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -21,11 +22,13 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: SonarCloud Scan
+      - name: Analyze auth-service
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          mvn -B verify sonar:sonar \
+          cd auth-service
+          chmod +x mvnw
+          ./mvnw clean verify sonar:sonar \
           -Dsonar.projectKey=Kavi-Jain-2003_HireConnect \
           -Dsonar.organization=kavi-jain-2003 \
           -Dsonar.host.url=https://sonarcloud.io
