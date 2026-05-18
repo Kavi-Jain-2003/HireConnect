@@ -76,11 +76,15 @@ public class JwtFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
-
-    // ✅ Skip filter for public APIs
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/jobs/public");
+        return path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-resources")
+                || path.startsWith("/webjars")
+                || path.equals("/swagger-ui.html")
+                || path.equals("/favicon.ico")
+                || path.startsWith("/jobs/public");
     }
 }

@@ -23,29 +23,19 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
             .csrf(csrf -> csrf.disable())
-
             .authorizeHttpRequests(auth -> auth
-                // PUBLIC — no token required
+                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/**", "/swagger-resources/**", "/webjars/**", "/favicon.ico").permitAll()
                 .requestMatchers("/jobs/public/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/jobs/**").permitAll()
-
-                // Bug 7 fix: ADMIN rule MUST come before the generic RECRUITER DELETE rule
                 .requestMatchers(HttpMethod.DELETE, "/jobs/admin/**").hasRole("ADMIN")
-
-                // RECRUITER ONLY — create / update / delete
                 .requestMatchers(HttpMethod.POST,   "/jobs").hasRole("RECRUITER")
                 .requestMatchers(HttpMethod.PUT,    "/jobs/**").hasRole("RECRUITER")
                 .requestMatchers(HttpMethod.DELETE, "/jobs/**").hasRole("RECRUITER")
-
                 .anyRequest().authenticated()
             )
-
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
                     response.setContentType("application/json");
@@ -58,7 +48,6 @@ public class SecurityConfig {
                     response.getWriter().write("{\"message\": \"Access denied: insufficient role\"}");
                 })
             )
-
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
