@@ -21,6 +21,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/**", "/swagger-resources/**", "/webjars/**", "/favicon.ico").permitAll()
             .requestMatchers("/applications/public/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/applications/job/**").hasAnyRole("RECRUITER", "ADMIN")
             .requestMatchers(HttpMethod.GET, "/applications/candidate/**").hasRole("CANDIDATE")
