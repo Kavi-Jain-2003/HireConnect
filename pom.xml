@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.hireconnect</groupId>
+    <artifactId>hireconnect-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>HireConnect Parent</name>
+    <description>Parent Aggregator POM for HireConnect Microservices</description>
+
+    <modules>
+        <module>analytics-service</module>
+        <module>api-gateway</module>
+        <module>application-service</module>
+        <module>auth-service</module>
+        <module>eureka-service</module>
+        <module>interview-service</module>
+        <module>job-service</module>
+        <module>notification-service</module>
+        <module>profile-service</module>
+        <module>subscription-service</module>
+    </modules>
+</project>
