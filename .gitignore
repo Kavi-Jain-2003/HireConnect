@@ -6,6 +6,7 @@ target/
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 .classpath
 =======
 .classpath
@@ -16,3 +17,6 @@ target/
 =======
 .classpath
 >>>>>>> feature/application-service
+=======
+.classpath
+>>>>>>> feature/profile-service
