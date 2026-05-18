@@ -14,7 +14,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfig {
 
-    // Bug 8 fix: inject Spring-managed JwtFilter instead of using new JwtFilter()
     private final JwtFilter jwtFilter;
 
     public SecurityConfig(JwtFilter jwtFilter) {
@@ -23,16 +22,16 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
         http
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(HttpMethod.POST, "/subscriptions/subscribe").hasRole("RECRUITER")
-                    .requestMatchers(HttpMethod.POST, "/subscriptions/cancel/**").hasRole("RECRUITER")
-                    .requestMatchers(HttpMethod.POST, "/subscriptions/renew/**").hasRole("RECRUITER")
-                    .requestMatchers(HttpMethod.GET, "/subscriptions/**").hasRole("RECRUITER")
-                    .anyRequest().authenticated()
+                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/**", "/swagger-resources/**", "/webjars/**", "/favicon.ico").permitAll()
+                .requestMatchers(HttpMethod.POST, "/subscriptions/subscribe").hasRole("RECRUITER")
+                .requestMatchers(HttpMethod.POST, "/subscriptions/cancel/**").hasRole("RECRUITER")
+                .requestMatchers(HttpMethod.POST, "/subscriptions/renew/**").hasRole("RECRUITER")
+                .requestMatchers(HttpMethod.GET,  "/subscriptions/**").hasRole("RECRUITER")
+                .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
