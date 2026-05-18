@@ -8,6 +8,7 @@ target/
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 .classpath
 =======
 .classpath
@@ -24,3 +25,6 @@ target/
 =======
 .classpath
 >>>>>>> feature/interview-service
+=======
+.classpath
+>>>>>>> feature/subscription-service
