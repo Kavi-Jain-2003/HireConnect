@@ -77,6 +77,11 @@ public class JwtFilter implements GlobalFilter, Ordered {
 
     private boolean isPublicPath(String path) {
         return path.startsWith("/auth/")
+                || path.startsWith("/swagger-ui/")
+                || path.startsWith("/swagger-ui.html")
+                || path.contains("/v3/api-docs")
+                || path.startsWith("/swagger-resources/")
+                || path.startsWith("/webjars/")
                 || path.startsWith("/jobs/public/")
                 || path.equals("/jobs/public")
                 || path.matches("/jobs/\\d+")
